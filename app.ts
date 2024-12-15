@@ -11,6 +11,41 @@ import autosaveRoutes from './routes/autosaveRoutes';
 const app = express();
 const PORT = 3030;
 
+const swaggerUi = require('swagger-ui-express');
+const swaggerJSDoc = require('swagger-jsdoc');
+
+const swaggerOptions = {
+    swaggerDefinition: {
+      info: {
+        title: 'My API',
+        version: '1.0.0',
+        description: 'This is a simple API with Swagger documentation',
+      },
+      basePath: '/', 
+    },
+    apis: ['./routes/*.js'], 
+  };
+  
+  
+  const swaggerSpec = swaggerJSDoc(swaggerOptions);
+  
+
+  app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
+  
+  
+  /**
+   * @swagger
+   * /hello:
+   *   get:
+   *     description: Returns a hello message
+   *     responses:
+   *       200:
+   *         description: A hello message
+   */
+  app.get('/hello', (req, res) => {
+    res.send('Hello World!');
+  });
+
 const pool = new Pool({
     user: 'postgres',
     host: 'localhost',
