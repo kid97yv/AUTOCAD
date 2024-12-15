@@ -2,12 +2,13 @@ import express, { Request, Response } from 'express';
 import { Pool } from 'pg';
 
 const pool = new Pool({
-    user: 'postgres',
-    host: 'localhost',
-    database: 'Autocad',
-    password: 'kid97yv',
+    user: 'kid97yv',
+    host: 'dpg-ctf66u5ds78s73dmv090-a.singapore-postgres.render.com',
+    database: 'autocad',
+    password: 'zObYyaejEq8Qsa3xFwKAI0DWUedCa50N',
     port: 5432,
 });
+
 const router = express.Router();
 
 router.post('/autosave', async (req: Request, res: Response): Promise<void> => {

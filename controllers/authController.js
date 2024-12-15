@@ -17,10 +17,10 @@ const pg_1 = require("pg");
 // import bcrypt from 'bcrypt';
 const bcryptjs_1 = __importDefault(require("bcryptjs"));
 const pool = new pg_1.Pool({
-    user: 'postgres',
-    host: 'localhost',
-    database: 'Autocad',
-    password: 'kid97yv',
+    user: 'kid97yv',
+    host: 'dpg-ctf66u5ds78s73dmv090-a.singapore-postgres.render.com',
+    database: 'autocad',
+    password: 'zObYyaejEq8Qsa3xFwKAI0DWUedCa50N',
     port: 5432,
 });
 const handleRegister = (req, res) => __awaiter(void 0, void 0, void 0, function* () {

@@ -11,10 +11,10 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 Object.defineProperty(exports, "__esModule", { value: true });
 const pg_1 = require("pg");
 const pool = new pg_1.Pool({
-    user: 'postgres',
-    host: 'localhost',
-    database: 'Autocad',
-    password: 'kid97yv',
+    user: 'kid97yv',
+    host: 'dpg-ctf66u5ds78s73dmv090-a.singapore-postgres.render.com',
+    database: 'autocad',
+    password: 'zObYyaejEq8Qsa3xFwKAI0DWUedCa50N',
     port: 5432,
 });
 function deleteAllUsers() {

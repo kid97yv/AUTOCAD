@@ -5,7 +5,14 @@ import { Pool } from 'pg'; // Hoặc bất kỳ thư viện nào bạn đang s�
 const autosaveInterval = 10000; // 10 giây
 let autosaveTimeout: NodeJS.Timeout;
 
-const pool = new Pool(); // Khởi tạo kết nối với cơ sở dữ liệu
+const pool = new Pool({
+  user: 'kid97yv',
+  host: 'dpg-ctf66u5ds78s73dmv090-a.singapore-postgres.render.com',
+  database: 'autocad',
+  password: 'zObYyaejEq8Qsa3xFwKAI0DWUedCa50N',
+  port: 5432,
+});
+
 
 export async function startAutosave(req: Request) {
     const { blueprintId, content } = req.body;
