@@ -33,6 +33,8 @@ const pool = new Pool({
     database: 'autocad',
     password: 'zObYyaejEq8Qsa3xFwKAI0DWUedCa50N',
     port: 5432,
+    ssl: { rejectUnauthorized: false }
+
 });
 
 

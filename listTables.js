@@ -16,6 +16,7 @@ const pool = new pg_1.Pool({
     database: 'autocad',
     password: 'zObYyaejEq8Qsa3xFwKAI0DWUedCa50N',
     port: 5432,
+    ssl: { rejectUnauthorized: false }
 });
 function listTables() {
     return __awaiter(this, void 0, void 0, function* () {

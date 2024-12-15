@@ -57,6 +57,7 @@ const pool = new pg_1.Pool({
     database: 'autocad',
     password: 'zObYyaejEq8Qsa3xFwKAI0DWUedCa50N',
     port: 5432,
+    ssl: { rejectUnauthorized: false }
 });
 app.set('view engine', 'ejs');
 app.set('views', path_1.default.join(__dirname, 'views'));

@@ -24,6 +24,7 @@ const client = new pg_1.Client({
     database: 'autocad',
     password: 'zObYyaejEq8Qsa3xFwKAI0DWUedCa50N',
     port: 5432,
+    ssl: { rejectUnauthorized: false }
 });
 exports.client = client;
 const connectDatabase = () => __awaiter(void 0, void 0, void 0, function* () {

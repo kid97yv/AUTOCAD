@@ -20,6 +20,7 @@ const pool = new pg_1.Pool({
     database: 'autocad',
     password: 'zObYyaejEq8Qsa3xFwKAI0DWUedCa50N',
     port: 5432,
+    ssl: { rejectUnauthorized: false }
 });
 const router = express_1.default.Router();
 router.post('/autosave', (req, res) => __awaiter(void 0, void 0, void 0, function* () {
