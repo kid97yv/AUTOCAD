@@ -14,7 +14,8 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.handleLogout = exports.handleLogin = exports.handleRegister = void 0;
 const pg_1 = require("pg");
-const bcrypt_1 = __importDefault(require("bcrypt"));
+// import bcrypt from 'bcrypt';
+const bcryptjs_1 = __importDefault(require("bcryptjs"));
 const pool = new pg_1.Pool({
     user: 'postgres',
     host: 'localhost',
@@ -29,7 +30,7 @@ const handleRegister = (req, res) => __awaiter(void 0, void 0, void 0, function*
         if (existingUser.rows.length > 0) {
             return res.status(400).send('Tên đăng nhập đã tồn tại!');
         }
-        const hashedPassword = yield bcrypt_1.default.hash(password, 10);
+        const hashedPassword = yield bcryptjs_1.default.hash(password, 10);
         yield pool.query('INSERT INTO "Users" (email, username, password, role, created_at) VALUES ($1, $2, $3, $4, NOW())', [email, username, hashedPassword, role]);
         return res.status(201).send('Đăng ký thành công!');
     }
@@ -44,7 +45,7 @@ const handleLogin = (req, res) => __awaiter(void 0, void 0, void 0, function* ()
     try {
         const userResult = yield pool.query('SELECT * FROM "Users" WHERE username = $1', [username]);
         const user = userResult.rows[0];
-        if (!user || !(yield bcrypt_1.default.compare(password, user.password))) {
+        if (!user || !(yield bcryptjs_1.default.compare(password, user.password))) {
             req.flash('errorMessage', 'Tên đăng nhập hoặc mật khẩu không đúng!');
             return res.redirect('/auth/login');
         }

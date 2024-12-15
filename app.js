@@ -19,7 +19,8 @@ const auth_1 = __importDefault(require("./routes/auth"));
 const express_session_1 = __importDefault(require("express-session"));
 const pg_1 = require("pg");
 const express_flash_1 = __importDefault(require("express-flash"));
-const bcrypt_1 = __importDefault(require("bcrypt"));
+// import bcrypt from 'bcrypt';
+const bcryptjs_1 = __importDefault(require("bcryptjs"));
 const autosaveRoutes_1 = __importDefault(require("./routes/autosaveRoutes"));
 const app = (0, express_1.default)();
 const PORT = 3030;
@@ -91,7 +92,7 @@ app.post('/api/register', (req, res) => __awaiter(void 0, void 0, void 0, functi
             req.flash('error', 'Tên đăng nhập đã tồn tại!');
             return res.redirect('/auth/register');
         }
-        const hashedPassword = yield bcrypt_1.default.hash(password, 10);
+        const hashedPassword = yield bcryptjs_1.default.hash(password, 10);
         yield pool.query('INSERT INTO "Users" (email, username, password, role, created_at) VALUES ($1, $2, $3, $4, NOW())', [email, username, hashedPassword, role]);
         return res.redirect('/auth/login');
     }

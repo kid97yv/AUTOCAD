@@ -5,7 +5,8 @@ import authRoutes from './routes/auth';
 import session, { SessionData } from 'express-session';
 import { Pool } from 'pg';
 import flash from 'express-flash';
-import bcrypt from 'bcrypt';
+// import bcrypt from 'bcrypt';
+import bcryptjs from 'bcryptjs';
 import multer from 'multer';
 import autosaveRoutes from './routes/autosaveRoutes'; 
 const app = express();
@@ -92,7 +93,7 @@ app.post('/api/register', async (req, res) => {
             return res.redirect('/auth/register');
         }
 
-        const hashedPassword = await bcrypt.hash(password, 10);
+        const hashedPassword = await bcryptjs.hash(password, 10);
         await pool.query(
             'INSERT INTO "Users" (email, username, password, role, created_at) VALUES ($1, $2, $3, $4, NOW())',
             [email, username, hashedPassword, role]
