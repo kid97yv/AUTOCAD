@@ -10,7 +10,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const pg_1 = require("pg");
-const client = new pg_1.Client({
+const pool = new pg_1.Pool({
     user: 'postgres',
     host: 'localhost',
     database: 'Autocad',
@@ -20,8 +20,7 @@ const client = new pg_1.Client({
 function listTables() {
     return __awaiter(this, void 0, void 0, function* () {
         try {
-            yield client.connect();
-            const res = yield client.query(`
+            const res = yield pool.query(`
             SELECT table_name 
             FROM information_schema.tables 
             WHERE table_schema='public';
@@ -34,9 +33,45 @@ function listTables() {
         catch (err) {
             console.error('Error fetching tables:', err.message);
         }
-        finally {
-            yield client.end();
+    });
+}
+function fetchUsers() {
+    return __awaiter(this, void 0, void 0, function* () {
+        try {
+            const res = yield pool.query('SELECT * FROM "Users"');
+            console.log('Thông tin người dùng:', res.rows);
+        }
+        catch (err) {
+            console.error('Lỗi:', err);
+        }
+    });
+}
+function fetchFiles() {
+    return __awaiter(this, void 0, void 0, function* () {
+        try {
+            const res = yield pool.query('SELECT * FROM "Files"');
+            console.log('Thông tin file:', res.rows);
+        }
+        catch (err) {
+            console.error('Lỗi:', err);
+        }
+    });
+}
+function fetchAutosavelogs() {
+    return __awaiter(this, void 0, void 0, function* () {
+        try {
+            const res = yield pool.query('SELECT * FROM "Autosavelogs"');
+            console.log('Thông tin Autosave:', res.rows);
+        }
+        catch (err) {
+            console.error('Lỗi:', err);
         }
     });
 }
 listTables();
+fetchUsers();
+fetchFiles();
+fetchAutosavelogs();
+process.on('exit', () => {
+    pool.end();
+});
