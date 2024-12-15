@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Upload File</title>
+</head>
+<body>
+    <h1>Upload File</h1>
+    <form action="/upload" method="POST" enctype="multipart/form-data" onsubmit="console.log('Form is being submitted');">
+        <input type="file" name="file" required />
+        <button type="submit">Upload</button>
+    </form>
+    <h2>History</h2>
+    <button onclick="getHistory()">Get Upload History</button>
+    <div id="history"></div>
+
+    <form action="/auth/logout" method="POST">
+        <button type="submit">Sign Out</button>
+    </form>
+    <script>
+        async function getHistory() {
+            const response = await fetch('/history');
+            const historyDiv = document.getElementById('history');
+            historyDiv.innerHTML = '';
+
+            if (response.ok) {
+                const html = await response.text();
+                historyDiv.innerHTML = html; // Hiển thị HTML trả về
+            } else {
+                historyDiv.innerHTML = '<p>Error fetching history.</p>';
+            }
+        }
+    </script>
+</body>
+</html>
