@@ -29,15 +29,15 @@ const handleRegister = (req, res) => __awaiter(void 0, void 0, void 0, function*
     try {
         const existingUser = yield pool.query('SELECT * FROM "Users" WHERE username = $1', [username]);
         if (existingUser.rows.length > 0) {
-            return res.status(400).send('Tên đăng nhập đã tồn tại!');
+            return res.status(400).json({ error: 'Tên đăng nhập đã tồn tại!' });
         }
         const hashedPassword = yield bcryptjs_1.default.hash(password, 10);
         yield pool.query('INSERT INTO "Users" (email, username, password, role, created_at) VALUES ($1, $2, $3, $4, NOW())', [email, username, hashedPassword, role]);
-        return res.status(201).send('Đăng ký thành công!');
+        return res.status(201).json({ message: 'Đăng ký thành công!' });
     }
     catch (err) {
         console.error('Lỗi:', err);
-        return res.status(500).send('Đã xảy ra lỗi trong quá trình đăng ký.');
+        return res.status(500).json({ error: 'Đã xảy ra lỗi trong quá trình đăng ký.' });
     }
 });
 exports.handleRegister = handleRegister;
@@ -47,16 +47,14 @@ const handleLogin = (req, res) => __awaiter(void 0, void 0, void 0, function* ()
         const userResult = yield pool.query('SELECT * FROM "Users" WHERE username = $1', [username]);
         const user = userResult.rows[0];
         if (!user || !(yield bcryptjs_1.default.compare(password, user.password))) {
-            req.flash('errorMessage', 'Tên đăng nhập hoặc mật khẩu không đúng!');
-            return res.redirect('/auth/login');
+            res.status(401).json({ error: 'Tên đăng nhập hoặc mật khẩu không đúng!' });
         }
         req.session.userId = user.id;
-        return res.redirect('/upload');
+        res.status(200).json({ message: 'Đăng nhập thành công!' });
     }
     catch (err) {
         console.error('Lỗi:', err);
-        req.flash('errorMessage', 'Đã xảy ra lỗi trong quá trình đăng nhập.');
-        return res.redirect('/auth/login');
+        res.status(500).json({ error: 'Đã xảy ra lỗi trong quá trình đăng nhập.' });
     }
 });
 exports.handleLogin = handleLogin;

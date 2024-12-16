@@ -20,7 +20,7 @@ export const handleRegister = async (req: Request, res: Response): Promise<Respo
     try {
         const existingUser = await pool.query('SELECT * FROM "Users" WHERE username = $1', [username]);
         if (existingUser.rows.length > 0) {
-            return res.status(400).send('Tên đăng nhập đã tồn tại!');
+            return res.status(400).json({ error: 'Tên đăng nhập đã tồn tại!' });
         }
 
         const hashedPassword = await bcryptjs.hash(password, 10);
@@ -29,12 +29,13 @@ export const handleRegister = async (req: Request, res: Response): Promise<Respo
             [email, username, hashedPassword, role]
         );
 
-        return res.status(201).send('Đăng ký thành công!'); 
+        return res.status(201).json({ message: 'Đăng ký thành công!' });
     } catch (err) {
         console.error('Lỗi:', err);
-        return res.status(500).send('Đã xảy ra lỗi trong quá trình đăng ký.');
+        return res.status(500).json({ error: 'Đã xảy ra lỗi trong quá trình đăng ký.' });
     }
 };
+
 
 export const handleLogin = async (req: Request, res: Response): Promise<void> => {
     const { username, password } = req.body;
@@ -44,17 +45,17 @@ export const handleLogin = async (req: Request, res: Response): Promise<void> =>
         const user = userResult.rows[0];
 
         if (!user || !(await bcryptjs.compare(password, user.password))) {
-            req.flash('errorMessage', 'Tên đăng nhập hoặc mật khẩu không đúng!');
-            return res.redirect('/auth/login'); 
+             res.status(401).json({ error: 'Tên đăng nhập hoặc mật khẩu không đúng!' });
         }
+
         (req.session as any).userId = user.id;
-        return res.redirect('/upload');
+         res.status(200).json({ message: 'Đăng nhập thành công!' });
     } catch (err) {
         console.error('Lỗi:', err);
-        req.flash('errorMessage', 'Đã xảy ra lỗi trong quá trình đăng nhập.');
-        return res.redirect('/auth/login'); 
+         res.status(500).json({ error: 'Đã xảy ra lỗi trong quá trình đăng nhập.' });
     }
 };
+
 export const handleLogout = (req: Request, res: Response): void => {
     req.session.destroy(err => {
         if (err) {

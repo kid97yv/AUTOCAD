@@ -12,7 +12,6 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.startAutosave = startAutosave;
 const pg_1 = require("pg"); // Hoặc bất kỳ thư viện nào bạn đang sử dụng
 const autosaveInterval = 10000; // 10 giây
-let autosaveTimeout;
 const pool = new pg_1.Pool({
     user: 'kid97yv',
     host: 'dpg-ctf66u5ds78s73dmv090-a.singapore-postgres.render.com',
@@ -21,22 +20,23 @@ const pool = new pg_1.Pool({
     port: 5432,
     ssl: { rejectUnauthorized: false }
 });
-function startAutosave(req) {
+function startAutosave(req, res) {
     return __awaiter(this, void 0, void 0, function* () {
         const { blueprintId, content } = req.body;
         if (!blueprintId || !content) {
             console.error('Missing blueprintId or content');
-            return;
+            return res.status(400).send({ error: 'Missing blueprintId or content' });
         }
         try {
-            yield fetch('/autosave', {
-                method: 'POST',
-                body: JSON.stringify({ blueprintId, content }),
-                headers: { 'Content-Type': 'application/json' },
-            });
+            // Thực hiện lưu trữ tự động vào cơ sở dữ liệu
+            const query = 'INSERT INTO "Autosave" (blueprint_id, content, saved_at) VALUES ($1, $2, NOW())';
+            yield pool.query(query, [blueprintId, content]);
+            console.log(`Autosave successful for blueprintId: ${blueprintId}`);
+            return res.status(200).send({ message: 'Autosave initiated.' });
         }
         catch (error) {
             console.error('Error saving autosave:', error);
+            return res.status(500).send({ error: 'Error saving autosave' });
         }
     });
 }

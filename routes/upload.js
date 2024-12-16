@@ -316,6 +316,7 @@ const path_1 = __importDefault(require("path"));
 const dxf_parser_1 = __importDefault(require("dxf-parser"));
 const pg_1 = require("pg");
 const autosave_1 = require("../autosave");
+const stream_1 = require("stream");
 const router = express_1.default.Router();
 const parser = new dxf_parser_1.default();
 const storage = multer_1.default.diskStorage({
@@ -342,18 +343,6 @@ const pool = new pg_1.Pool({
 /**
  * @swagger
  * /upload:
- *   get:
- *     description: Render upload page
- *     responses:
- *       200:
- *         description: Upload page
- */
-router.get('/upload', (req, res) => {
-    res.render('upload');
-});
-/**
- * @swagger
- * /upload:
  *   post:
  *     description: Upload a DXF file and process it
  *     parameters:
@@ -374,11 +363,11 @@ router.post('/upload', upload.single('file'), (req, res) => __awaiter(void 0, vo
     const userId = req.session.userId;
     console.log('userid : ', userId);
     if (!req.file) {
-        res.status(400).send('No file uploaded.');
+        res.status(400).json({ error: 'No file uploaded.' });
         return;
     }
     if (path_1.default.extname(req.file.filename) !== '.dxf') {
-        res.status(400).send('Please upload a valid DXF file.');
+        res.status(400).json({ error: 'Please upload a valid DXF file.' });
         return;
     }
     try {
@@ -386,7 +375,7 @@ router.post('/upload', upload.single('file'), (req, res) => __awaiter(void 0, vo
         const dxfData = parser.parseSync(fileContent);
         if (!dxfData || !dxfData.entities) {
             console.error('Error parsing DXF file: No data returned.');
-            res.status(500).send('Error parsing DXF file: No data returned.');
+            res.status(500).json({ error: 'Error parsing DXF file: No data returned.' });
             return;
         }
         const hasHeader = dxfData.header && Object.keys(dxfData.header).length > 0;
@@ -394,7 +383,7 @@ router.post('/upload', upload.single('file'), (req, res) => __awaiter(void 0, vo
         const hasBlocks = dxfData.blocks && Object.keys(dxfData.blocks).length > 0;
         if (!hasHeader || !hasTables || !hasBlocks) {
             console.error('Invalid DXF file: Missing required sections.');
-            res.status(400).send('Invalid DXF file: Please upload a complete DXF file with header, tables, and blocks.');
+            res.status(400).json({ error: 'Invalid DXF file: Please upload a complete DXF file with header, tables, and blocks.' });
             return;
         }
         req.session.filePath = filePath;
@@ -406,19 +395,23 @@ router.post('/upload', upload.single('file'), (req, res) => __awaiter(void 0, vo
         const entitiesFileName = `entities_only_${req.file.filename}`;
         const entitiesFilePath = path_1.default.join(__dirname, '../uploads/', entitiesFileName);
         fs_1.default.writeFileSync(entitiesFilePath, JSON.stringify(entitiesOnly, null, 2));
+        // Trả về kết quả dưới dạng JSON
         if (!res.headersSent) {
-            const readLink = `/read-dxf/${encodeURIComponent(req.file.filename)}`;
-            const downloadLink = `/download/${encodeURIComponent(entitiesFileName)}`;
-            res.send(`<h1>File Uploaded Successfully</h1>
-                <p><a href="${readLink}">Click here to read the DXF file</a></p>
-                <p><a href="${downloadLink}">Click here to download the DXF file</a></p>
-                <p><a href="/upload">Back to Upload Page</a></p>`);
+            res.status(200).json({
+                message: 'File uploaded successfully',
+                file: {
+                    filename: req.file.filename,
+                    filePath: filePath,
+                    readLink: `/read-dxf/${encodeURIComponent(req.file.filename)}`,
+                    downloadLink: `/download/${encodeURIComponent(entitiesFileName)}`
+                }
+            });
         }
     }
     catch (err) {
         console.error('Error processing file:', err);
         if (!res.headersSent) {
-            res.status(500).send('Error processing file.');
+            res.status(500).json({ error: 'Error processing file.' });
             return;
         }
     }
@@ -433,7 +426,7 @@ router.post('/upload', upload.single('file'), (req, res) => __awaiter(void 0, vo
  *         description: Autosave initiated
  */
 router.post('/autosave', (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    (0, autosave_1.startAutosave)(req);
+    (0, autosave_1.startAutosave)(req, res);
     res.status(200).send('Autosave initiated.');
 }));
 /**
@@ -453,30 +446,116 @@ router.post('/autosave', (req, res) => __awaiter(void 0, void 0, void 0, functio
  *       404:
  *         description: File not found
  */
-router.get('/download/:filename', (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    const filename = req.params.filename;
-    const filePath = path_1.default.join(__dirname, '../uploads/', filename);
-    console.log('File path:', filePath);
-    console.log('File exists:', fs_1.default.existsSync(filePath));
-    if (fs_1.default.existsSync(filePath)) {
-        res.download(filePath, filename, (err) => {
-            if (err) {
-                console.error('Error downloading file:', err);
-                res.status(500).send('Error downloading file.');
-            }
-        });
-    }
-    else {
-        console.error('File not found:', filePath);
-        res.status(404).send('File not found.');
-    }
-}));
+// router.get('/download/:filename', async (req: Request, res: Response): Promise<void> => {
+//     const filename = req.params.filename;
+//     const filePath = path.join(__dirname, '../uploads/', filename);
+//     console.log('File path:', filePath); 
+//     console.log('File exists:', fs.existsSync(filePath)); 
+//     if (fs.existsSync(filePath)) {
+//         res.download(filePath, filename, (err) => {
+//             if (err) {
+//                 console.error('Error downloading file:', err);
+//                 res.status(500).send('Error downloading file.');
+//             }
+//         });
+//     } else {
+//         console.error('File not found:', filePath);
+//         res.status(404).send('File not found.');
+//     }
+// });
 const isAuthenticated = (req, res, next) => {
     if (req.session.userId) {
         return next();
     }
     res.status(401).send('Unauthorized');
 };
+// router.get('/download/:id', async (req: Request, res: Response): Promise<void> => {
+//     const fileId = req.params.id;
+//     try {
+//         const result = await pool.query('SELECT file_name, file_path FROM "Files" WHERE id = $1', [fileId]);
+//         if (result.rows.length === 0) {
+//              res.status(404).send('File not found.');
+//         }
+//         const { file_name, file_path } = result.rows[0];
+//         const fullPath = file_path;
+//         if (fs.existsSync(fullPath)) {
+//             res.setHeader('Content-Disposition', `attachment; filename="${file_name}"`);
+//              res.download(fullPath, file_name, (err) => {
+//                 if (err) {
+//                     console.error('Error downloading file:', err);
+//                     return res.status(500).send('Error downloading file.');
+//                 }
+//             });
+//         } else {
+//             console.error('File not found on server:', fullPath);
+//              res.status(404).send('File not found on server.');
+//         }
+//     } catch (error) {
+//         console.error('Database error:', error);
+//          res.status(500).send('Error retrieving file information.');
+//     }
+// });
+router.get('/download/:id', (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    const fileId = req.params.id;
+    try {
+        const result = yield pool.query('SELECT file_name, file_path, user_id FROM "Files" WHERE id = $1', [fileId]);
+        if (result.rows.length === 0) {
+            res.status(404).send('File not found.');
+            return;
+        }
+        const { file_name, file_path, user_id } = result.rows[0];
+        const fullPath = file_path;
+        if (fs_1.default.existsSync(fullPath)) {
+            const dxfData = fs_1.default.readFileSync(fullPath, 'utf-8');
+            const parsedData = parser.parseSync(dxfData);
+            if (!parsedData) {
+                res.status(500).send('Error parsing DXF file.');
+                return;
+            }
+            const entities = parsedData.entities.map((entity) => {
+                const filteredEntity = {
+                    type: entity.type,
+                    handle: entity.handle,
+                    ownerHandle: entity.ownerHandle,
+                    layer: entity.layer,
+                    colorIndex: entity.colorIndex,
+                    color: entity.color,
+                    lineweight: entity.lineweight,
+                    center: entity.center,
+                    radius: entity.radius
+                };
+                return filteredEntity;
+            });
+            const scale = {
+                extmin: parsedData.header.$EXTMIN,
+                extmax: parsedData.header.$EXTMAX,
+                isScaleOneToOne: parsedData.header && parsedData.header['$INSUNITS'] === 1
+            };
+            const modifiedDxfData = createModifiedDxfString(user_id, scale, entities);
+            const buffer = Buffer.from(modifiedDxfData, 'utf-8');
+            const stream = stream_1.Readable.from(buffer);
+            const newFileName = `Entities_${file_name}`;
+            res.setHeader('Content-Disposition', `attachment; filename="${newFileName}"`);
+            res.setHeader('Content-Type', 'application/dxf');
+            stream.pipe(res);
+        }
+        else {
+            res.status(404).send('File not found on server.');
+        }
+    }
+    catch (error) {
+        console.error('Error:', error);
+        res.status(500).send('Error retrieving file.');
+    }
+}));
+function createModifiedDxfString(user, scale, entities) {
+    const dxfJson = {
+        user: user,
+        scale: scale,
+        entities: entities
+    };
+    return JSON.stringify(dxfJson, null, 2);
+}
 /**
  * @swagger
  * /history:
@@ -492,31 +571,52 @@ router.get('/history', isAuthenticated, (req, res) => __awaiter(void 0, void 0, 
     const userId = req.session.userId;
     if (!userId) {
         res.status(401).send('Unauthorized');
+        return;
     }
     try {
+        // Truy vấn các tệp của người dùng
         const result = yield pool.query('SELECT * FROM "Files" WHERE user_id = $1 ORDER BY uploaded_at DESC', [userId]);
         const files = result.rows;
-        let historyHtml = `<h3>File Upload History</h3>
-        <table border="1">
-            <tr>
-                <th>ID</th>
-                <th>File Name</th>
-                <th>Uploaded At</th>
-                <th>Actions</th>
-            </tr>`;
-        files.forEach(file => {
-            historyHtml +=
-                `<tr>
-                    <td>${file.id}</td>
-                    <td>${file.file_name}</td>
-                    <td>${file.uploaded_at}</td>
-                    <td>
-                        <a href="/download/${file.file_name}">Download</a>
-                    </td>
-                </tr>`;
-        });
-        historyHtml += '</table>';
-        res.send(historyHtml);
+        const historyResponse = [];
+        for (const file of files) {
+            const { file_name, uploaded_at, id, file_path, upload_user } = file;
+            const fullPath = path_1.default.resolve(__dirname, 'uploads', file_path);
+            if (!fs_1.default.existsSync(fullPath)) {
+                console.error(`File not found: ${fullPath}`);
+                continue;
+            }
+            const dxfData = fs_1.default.readFileSync(fullPath, 'utf-8');
+            const parsedData = parser.parseSync(dxfData);
+            if (!parsedData) {
+                console.error('Error parsing DXF file.');
+                continue;
+            }
+            const entities = parsedData.entities.map((entity) => ({
+                type: entity.type,
+                handle: entity.handle,
+                ownerHandle: entity.ownerHandle,
+                layer: entity.layer,
+                colorIndex: entity.colorIndex,
+                color: entity.color,
+                lineweight: entity.lineweight,
+                center: entity.center,
+                radius: entity.radius
+            }));
+            const scale = {
+                extmin: parsedData.header.$EXTMIN,
+                extmax: parsedData.header.$EXTMAX,
+                isScaleOneToOne: parsedData.header && parsedData.header['$INSUNITS'] === 1
+            };
+            historyResponse.push({
+                id,
+                fileName: file_name,
+                uploadedAt: uploaded_at,
+                user: upload_user,
+                scale,
+                entities
+            });
+        }
+        res.json(historyResponse);
     }
     catch (err) {
         console.error('Error fetching file history:', err);
@@ -540,35 +640,59 @@ router.get('/history', isAuthenticated, (req, res) => __awaiter(void 0, void 0, 
  *       500:
  *         description: Error reading or parsing the file
  */
-router.get('/read-dxf/:filename', (req, res) => {
-    const filename = decodeURIComponent(req.params.filename);
-    const filePath = path_1.default.join(__dirname, '../uploads/', filename);
-    const parser = new dxf_parser_1.default();
-    fs_1.default.readFile(filePath, 'utf8', (err, data) => {
-        if (err) {
-            console.error('Error reading file:', err);
-            return res.status(500).send('Error reading file.');
+router.get('/read-dxf/:fileId', (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    const fileId = req.params.fileId;
+    try {
+        const result = yield pool.query('SELECT * FROM "Files" WHERE id = $1', [fileId]);
+        if (result.rows.length === 0) {
+            res.status(404).send('File not found.');
         }
-        try {
-            const dxfData = parser.parseSync(data);
-            if (!dxfData) {
-                return res.status(500).send('Error parsing DXF file: No data returned.');
+        const file = result.rows[0];
+        const filePath = file.file_path;
+        const parser = new dxf_parser_1.default();
+        fs_1.default.readFile(filePath, 'utf8', (err, data) => {
+            if (err) {
+                console.error('Error reading file:', err);
+                return res.status(500).send('Error reading file.');
             }
-            const entities = dxfData.entities;
-            const tables = dxfData.tables;
-            const isScaleOneToOne = dxfData.header && dxfData.header['$INSUNITS'] === 1;
-            const entitiesHtml = '<h2>DXF Entities:</h2><pre>' + JSON.stringify(entities, null, 2) + '</pre>';
-            const tablesHtml = '<h2>DXF Tables:</h2><pre>' + JSON.stringify(tables, null, 2) + '</pre>';
-            const scaleHtml = `<h2>Scale 1:1:</h2><p>${isScaleOneToOne}</p>`;
-            return res.send(`<h1>DXF File Content</h1>
-                ${scaleHtml}
-                ${tablesHtml}
-                ${entitiesHtml}`);
-        }
-        catch (parseError) {
-            console.error('Error parsing DXF:', parseError);
-            return res.status(500).send('Error parsing DXF file.');
-        }
-    });
-});
+            try {
+                const dxfData = parser.parseSync(data);
+                if (!dxfData) {
+                    return res.status(500).send('Error parsing DXF file: No data returned.');
+                }
+                const entities = dxfData.entities.map((entity) => ({
+                    type: entity.type,
+                    handle: entity.handle,
+                    ownerHandle: entity.ownerHandle,
+                    layer: entity.layer,
+                    colorIndex: entity.colorIndex,
+                    color: entity.color,
+                    lineweight: entity.lineweight,
+                    center: entity.center,
+                    radius: entity.radius
+                }));
+                const scale = {
+                    extmin: dxfData.header.$EXTMIN,
+                    extmax: dxfData.header.$EXTMAX,
+                    isScaleOneToOne: dxfData.header && dxfData.header['$INSUNITS'] === 1
+                };
+                res.json({
+                    fileId: fileId,
+                    fileName: file.file_name,
+                    user: file.upload_user,
+                    scale,
+                    entities
+                });
+            }
+            catch (parseError) {
+                console.error('Error parsing DXF:', parseError);
+                return res.status(500).send('Error parsing DXF file.');
+            }
+        });
+    }
+    catch (err) {
+        console.error('Error fetching file from database:', err);
+        res.status(500).send('Error fetching file from database.');
+    }
+}));
 exports.default = router;

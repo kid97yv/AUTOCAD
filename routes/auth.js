@@ -19,32 +19,32 @@ const router = express_1.default.Router();
 router.get('/', (req, res) => {
     res.send('Welcome to my app!');
 });
-router.get('/register', (req, res) => {
-    const errorMessages = req.flash('error') || [];
-    res.render('register', { errorMessages });
-});
-router.post('/register', (req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
+// router.get('/register', (req: Request, res: Response) => {
+//     const errorMessages = req.flash('error') || [];
+//     res.render('register', { errorMessages });
+// });
+router.post('/register', (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
-        yield (0, authController_1.handleRegister)(req, res);
+        yield (0, authController_1.handleRegister)(req, res); // Xử lý đăng ký
     }
     catch (err) {
-        next(err);
+        res.status(500).json({ error: 'Đã xảy ra lỗi trong quá trình đăng ký.' });
     }
 }));
-router.get('/login', (req, res) => {
-    res.render('login');
-});
+// router.get('/login', (req: Request, res: Response) => {
+//     res.render('login'); 
+// });
 router.post('/login', (req, res, next) => {
-    (0, authController_1.handleLogin)(req, res)
-        .catch((err) => next(err));
+    (0, authController_1.handleLogin)(req, res).catch((err) => next(err));
 });
 router.post('/logout', (req, res) => {
-    req.session.destroy(err => {
+    req.session.destroy((err) => {
         if (err) {
             console.error('Error destroying session:', err);
-            return res.status(500).send('Error logging out.');
+            return res.status(500).json({ error: 'Đã xảy ra lỗi khi đăng xuất.' });
         }
-        res.redirect('/auth/login');
+        // Trả về phản hồi JSON khi logout thành công
+        return res.status(200).json({ message: 'Đăng xuất thành công!' });
     });
 });
 router.use('/upload', upload_1.default);
