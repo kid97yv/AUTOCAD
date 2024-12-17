@@ -16,9 +16,7 @@ const express_1 = __importDefault(require("express"));
 const authController_1 = require("../controllers/authController");
 const upload_1 = __importDefault(require("./upload"));
 const express_session_1 = __importDefault(require("express-session"));
-const bodyParser = require('body-parser');
 const router = express_1.default.Router();
-const cors = require('cors');
 const app = (0, express_1.default)();
 app.use((0, express_session_1.default)({
     secret: 'your_secret_key', // Thay thế bằng secret thực của bạn

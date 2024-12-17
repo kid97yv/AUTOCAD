@@ -1,12 +1,7 @@
 import express, { Request, Response, NextFunction } from 'express';
 import { handleLogin, handleRegister } from '../controllers/authController';
 import uploadMiddleware from './upload'; 
-import swaggerUi from 'swagger-ui-express';  // Import đúng swagger-ui-express
-import path from 'path';
-import fs from 'fs';
 import session from 'express-session';
-const bodyParser = require('body-parser');
-
 const router = express.Router();
 
 
