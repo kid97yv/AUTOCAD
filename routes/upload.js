@@ -395,7 +395,6 @@ router.post('/upload', upload.single('file'), (req, res) => __awaiter(void 0, vo
     var _a;
     const filePath = path_1.default.join(__dirname, '../uploads/', ((_a = req.file) === null || _a === void 0 ? void 0 : _a.filename) || '');
     const userId = req.session.userId;
-    console.log('userid : ', userId);
     if (!req.file) {
         res.status(400).json({ error: 'No file uploaded.' });
         return;
@@ -412,34 +411,36 @@ router.post('/upload', upload.single('file'), (req, res) => __awaiter(void 0, vo
             res.status(500).json({ error: 'Error parsing DXF file: No data returned.' });
             return;
         }
-        const hasHeader = dxfData.header && Object.keys(dxfData.header).length > 0;
-        const hasTables = dxfData.tables && Object.keys(dxfData.tables).length > 0;
-        const hasBlocks = dxfData.blocks && Object.keys(dxfData.blocks).length > 0;
-        if (!hasHeader || !hasTables || !hasBlocks) {
-            console.error('Invalid DXF file: Missing required sections.');
-            res.status(400).json({ error: 'Invalid DXF file: Please upload a complete DXF file with header, tables, and blocks.' });
-            return;
+        // Kiểm tra tệp đã tồn tại trong cơ sở dữ liệu
+        const checkFileExists = yield pool.query('SELECT * FROM "Files" WHERE file_name = $1', [req.file.filename]);
+        if (checkFileExists.rows.length > 0) {
+            // Nếu tệp đã tồn tại, thay đổi tên tệp (ví dụ: thêm UUID hoặc thời gian)
+            const newFileName = `${Date.now()}_${req.file.filename}`; // Thêm thời gian vào tên tệp
+            const newFilePath = path_1.default.join(__dirname, '../uploads/', newFileName);
+            // Di chuyển tệp cũ sang tên mới
+            fs_1.default.renameSync(filePath, newFilePath);
+            // Cập nhật lại đường dẫn trong cơ sở dữ liệu
+            yield pool.query('INSERT INTO "Files" (user_id, file_name, file_path, uploaded_at) VALUES ($1, $2, $3, NOW()) RETURNING id', [userId, newFileName, newFilePath]);
+            res.status(200).json({
+                message: 'File uploaded successfully',
+                file: {
+                    filename: newFileName,
+                    filePath: newFilePath,
+                    readLink: `/read-dxf/${encodeURIComponent(newFileName)}`,
+                    downloadLink: `/download/${newFileName}`
+                }
+            });
         }
-        req.session.filePath = filePath;
-        req.session.fileName = req.file.filename;
-        // Lưu tệp vào cơ sở dữ liệu với ID và thông tin tệp
-        const result = yield pool.query('INSERT INTO "Files" (user_id, file_name, file_path, uploaded_at) VALUES ($1, $2, $3, NOW()) RETURNING id', [userId, req.file.filename, filePath]);
-        const fileId = result.rows[0].id; // Lấy ID tệp vừa được lưu
-        const entitiesOnly = {
-            entities: dxfData.entities,
-        };
-        const entitiesFileName = `entities_only_${req.file.filename}`;
-        const entitiesFilePath = path_1.default.join(__dirname, '../uploads/', entitiesFileName);
-        fs_1.default.writeFileSync(entitiesFilePath, JSON.stringify(entitiesOnly, null, 2));
-        // Trả về kết quả dưới dạng JSON, sử dụng ID tệp trong downloadLink
-        if (!res.headersSent) {
+        else {
+            // Nếu tệp chưa tồn tại, lưu vào cơ sở dữ liệu bình thường
+            yield pool.query('INSERT INTO "Files" (user_id, file_name, file_path, uploaded_at) VALUES ($1, $2, $3, NOW()) RETURNING id', [userId, req.file.filename, filePath]);
             res.status(200).json({
                 message: 'File uploaded successfully',
                 file: {
                     filename: req.file.filename,
                     filePath: filePath,
                     readLink: `/read-dxf/${encodeURIComponent(req.file.filename)}`,
-                    downloadLink: `/download/${fileId}` // Sử dụng ID tệp thay vì tên tệp
+                    downloadLink: `/download/${req.file.filename}`
                 }
             });
         }
@@ -448,7 +449,6 @@ router.post('/upload', upload.single('file'), (req, res) => __awaiter(void 0, vo
         console.error('Error processing file:', err);
         if (!res.headersSent) {
             res.status(500).json({ error: 'Error processing file.' });
-            return;
         }
     }
 }));
