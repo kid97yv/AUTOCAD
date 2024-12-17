@@ -229,8 +229,7 @@
         }
       }
     }
-  }
-},
+  },
     "/autosave": {
       "post": {
         "description": "Start autosave process",
@@ -480,7 +479,8 @@
       }
     }
   }
-  }
+}
+  
   
   
 

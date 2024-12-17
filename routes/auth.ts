@@ -174,18 +174,15 @@ router.post('/login', (req, res, next) => {
  *                   type: string
  *                   example: "Đã xảy ra lỗi khi đăng xuất."
  */
-router.post('/logout', (req: Request, res: Response) => {
+app.post('/logout', (req, res) => {
     req.session.destroy((err) => {
-        if (err) {
-            console.error('Error destroying session:', err);
-            return res.status(500).json({ error: 'Đã xảy ra lỗi khi đăng xuất.' });
-        }
-
-        // Trả về phản hồi JSON khi logout thành công
-        return res.status(200).json({ message: 'Đăng xuất thành công!' });
+      if (err) {
+        return res.status(500).json({ error: 'Không thể đăng xuất' });
+      }
+      res.clearCookie('connect.sid');  // Xóa cookie liên quan đến session
+      res.status(200).json({ message: 'Đăng xuất thành công' });
     });
-});
-
+  });
 
 router.use('/upload', uploadMiddleware);
 

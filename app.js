@@ -11,11 +11,31 @@ const express_session_1 = __importDefault(require("express-session"));
 const pg_1 = require("pg");
 const express_flash_1 = __importDefault(require("express-flash"));
 const fs_1 = __importDefault(require("fs"));
-const swagger_jsdoc_1 = __importDefault(require("swagger-jsdoc"));
 const swagger_ui_express_1 = __importDefault(require("swagger-ui-express"));
 const cors_1 = __importDefault(require("cors"));
+// Khởi tạo express app và port
 const app = (0, express_1.default)();
 const PORT = 3030;
+const connectPgSimple = require('connect-pg-simple');
+const pool = new pg_1.Pool({
+    user: 'kid97yv',
+    host: 'dpg-ctf66u5ds78s73dmv090-a.singapore-postgres.render.com',
+    database: 'autocad',
+    password: 'zObYyaejEq8Qsa3xFwKAI0DWUedCa50N',
+    port: 5432,
+    ssl: { rejectUnauthorized: false },
+});
+const PGSession = connectPgSimple(express_session_1.default);
+app.use((0, express_session_1.default)({
+    store: new PGSession({
+        pool: pool, // Sử dụng pool kết nối của bạn
+        tableName: 'session', // Tên bảng lưu trữ session trong PostgreSQL
+    }),
+    secret: 'your-secret-key',
+    resave: false,
+    saveUninitialized: false,
+    cookie: { secure: false }, // Đặt `secure: true` khi chạy trên môi trường HTTPS
+}));
 app.use((0, cors_1.default)({
     origin: '*', // Chấp nhận tất cả các domain
     credentials: true, // Cho phép gửi cookie (nếu cần)
@@ -32,7 +52,6 @@ const swaggerOptions = {
     },
     apis: ['./routes/*.ts'],
 };
-const swaggerSpec = (0, swagger_jsdoc_1.default)(swaggerOptions);
 const swaggerDocument = JSON.parse(fs_1.default.readFileSync(path_1.default.join(__dirname, 'swagger.json'), 'utf8'));
 app.use('/swagger', express_1.default.static(path_1.default.join(__dirname, 'swagger-ui')));
 app.use('/api-docs', swagger_ui_express_1.default.serve, swagger_ui_express_1.default.setup(swaggerDocument));
@@ -45,14 +64,6 @@ app.use((0, express_session_1.default)({
     saveUninitialized: true,
     cookie: { httpOnly: true, maxAge: 3600000 }
 }));
-const pool = new pg_1.Pool({
-    user: 'kid97yv',
-    host: 'dpg-ctf66u5ds78s73dmv090-a.singapore-postgres.render.com',
-    database: 'autocad',
-    password: 'zObYyaejEq8Qsa3xFwKAI0DWUedCa50N',
-    port: 5432,
-    ssl: { rejectUnauthorized: false },
-});
 app.set('view engine', 'ejs');
 app.set('views', path_1.default.join(__dirname, 'views'));
 app.use('/auth', auth_1.default);

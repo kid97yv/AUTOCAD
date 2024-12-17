@@ -9,9 +9,32 @@ import fs from 'fs';
 import swaggerJSDoc from 'swagger-jsdoc'; 
 import swaggerUi from 'swagger-ui-express'; 
 import cors from 'cors'; 
+
+// Khởi tạo express app và port
 const app = express();
 const PORT = 3030;
+const connectPgSimple = require('connect-pg-simple');
 
+const pool = new Pool({
+    user: 'kid97yv',
+    host: 'dpg-ctf66u5ds78s73dmv090-a.singapore-postgres.render.com',
+    database: 'autocad',
+    password: 'zObYyaejEq8Qsa3xFwKAI0DWUedCa50N',
+    port: 5432,
+    ssl: { rejectUnauthorized: false },
+});
+const PGSession = connectPgSimple(session);
+
+app.use(session({
+    store: new PGSession({
+        pool: pool,  // Sử dụng pool kết nối của bạn
+        tableName: 'session',  // Tên bảng lưu trữ session trong PostgreSQL
+    }),
+    secret: 'your-secret-key',
+    resave: false,
+    saveUninitialized: false,
+    cookie: { secure: false },  // Đặt `secure: true` khi chạy trên môi trường HTTPS
+}));
 app.use(cors({
     origin: '*',  // Chấp nhận tất cả các domain
     credentials: true,  // Cho phép gửi cookie (nếu cần)
@@ -30,7 +53,6 @@ const swaggerOptions = {
     },
     apis: ['./routes/*.ts'],
 };
-const swaggerSpec = swaggerJSDoc(swaggerOptions);
 const swaggerDocument = JSON.parse(fs.readFileSync(path.join(__dirname, 'swagger.json'), 'utf8'));
 
 app.use('/swagger', express.static(path.join(__dirname, 'swagger-ui')));
@@ -47,14 +69,7 @@ app.use(session({
     cookie: { httpOnly: true, maxAge: 3600000 }  
 }));
 
-const pool = new Pool({
-    user: 'kid97yv',
-    host: 'dpg-ctf66u5ds78s73dmv090-a.singapore-postgres.render.com',
-    database: 'autocad',
-    password: 'zObYyaejEq8Qsa3xFwKAI0DWUedCa50N',
-    port: 5432,
-    ssl: { rejectUnauthorized: false },
-});
+
 
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
