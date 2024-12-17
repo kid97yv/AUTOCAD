@@ -585,10 +585,12 @@ function createModifiedDxfString(user, scale, entities) {
 }
 /**
  * @swagger
- * /history/{userId}:
+ * /history/{userId?}:
  *   get:
  *     summary: "Get the history of uploaded files for a specific user"
  *     description: "Fetches the list of uploaded files for a specific user. If userId is not provided, it fetches the files of the authenticated user."
+ *     security:
+ *       - bearerAuth: []  # Nếu bạn sử dụng JWT hoặc cơ chế xác thực khác
  *     parameters:
  *       - name: userId
  *         in: path
@@ -656,36 +658,32 @@ function createModifiedDxfString(user, scale, entities) {
 //     }
 // });
 router.get('/history/:userId?', isAuthenticated, (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    // Kiểm tra nếu có userId trong URL, nếu không lấy từ session
-    let userId = req.params.userId || req.session.userId;
+    const userId = req.params.userId || req.session.userId;
     if (!userId) {
         res.status(401).send('Unauthorized');
         return;
     }
     try {
-        // Truy vấn các tệp của người dùng từ database
+        // Truy vấn các tệp của người dùng
         const result = yield pool.query('SELECT * FROM "Files" WHERE user_id = $1 ORDER BY uploaded_at DESC', [userId]);
         const files = result.rows;
         const historyResponse = [];
-        // Duyệt qua các file và chuẩn bị phản hồi
         for (const file of files) {
             const { file_name, uploaded_at, id, file_path, upload_user } = file;
             const fullPath = path_1.default.resolve(__dirname, 'uploads', file_path);
-            // Kiểm tra file có tồn tại không
             if (!fs_1.default.existsSync(fullPath)) {
                 console.error(`File not found: ${fullPath}`);
                 continue;
             }
-            // Thêm thông tin file vào phản hồi
             historyResponse.push({
                 id,
                 fileName: file_name,
                 uploadedAt: uploaded_at,
                 user: upload_user,
-                downloadUrl: `/download/${id}` // Đường dẫn tải file
+                downloadUrl: `/download/${id}`
             });
         }
-        res.json(historyResponse); // Trả về dữ liệu file lịch sử
+        res.json(historyResponse);
     }
     catch (err) {
         console.error('Error fetching file history:', err);
