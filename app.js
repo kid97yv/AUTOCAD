@@ -26,6 +26,12 @@ const pool = new pg_1.Pool({
     ssl: { rejectUnauthorized: false },
 });
 const PGSession = connectPgSimple(express_session_1.default);
+app.use(require('express-session')({
+    secret: 'your-secret-key',
+    resave: false,
+    saveUninitialized: true,
+    cookie: { secure: false } // Thêm secure: true khi sử dụng HTTPS
+}));
 app.use((0, express_session_1.default)({
     store: new PGSession({
         pool: pool, // Sử dụng pool kết nối của bạn

@@ -118,37 +118,38 @@
         }
       }
     },
-      "/auth/logout": {
-        "post": {
-          "summary": "Đăng xuất người dùng",
-          "description": "Đăng xuất người dùng khỏi hệ thống bằng cách hủy phiên làm việc.",
-          "responses": {
-            "200": {
-              "description": "Đăng xuất thành công.",
-              "content": {
-                "application/json": {
-                  "schema": {
-                    "type": "object",
-                    "properties": {
-                      "message": {
-                        "type": "string",
-                        "example": "Đăng xuất thành công!"
+        "/auth/logout": {
+          "post": {
+            "summary": "Đăng xuất người dùng",
+            "description": "Đăng xuất người dùng khỏi hệ thống bằng cách hủy phiên làm việc.",
+            "responses": {
+              "200": {
+                "description": "Đăng xuất thành công.",
+                "content": {
+                  "application/json": {
+                    "schema": {
+                      "type": "object",
+                      "properties": {
+                        "message": {
+                          "type": "string",
+                          "example": "Đăng xuất thành công!"
+                        }
                       }
                     }
                   }
                 }
-              }
-            },
-            "500": {
-              "description": "Đã xảy ra lỗi khi hủy phiên làm việc.",
-              "content": {
-                "application/json": {
-                  "schema": {
-                    "type": "object",
-                    "properties": {
-                      "error": {
-                        "type": "string",
-                        "example": "Đã xảy ra lỗi khi đăng xuất."
+              },
+              "500": {
+                "description": "Đã xảy ra lỗi khi hủy phiên làm việc.",
+                "content": {
+                  "application/json": {
+                    "schema": {
+                      "type": "object",
+                      "properties": {
+                        "error": {
+                          "type": "string",
+                          "example": "Đã xảy ra lỗi khi đăng xuất."
+                        }
                       }
                     }
                   }
@@ -156,9 +157,7 @@
               }
             }
           }
-        }
-      },
-      "paths": {
+        },
     "/upload": {
       "post": {
         "summary": "* Upload a DXF file",
@@ -228,8 +227,7 @@
           }
         }
       }
-    }
-  },
+    },
     "/autosave": {
       "post": {
         "description": "Start autosave process",
@@ -441,7 +439,7 @@
       }
     }
   }
-      }
+}
   
   
   
