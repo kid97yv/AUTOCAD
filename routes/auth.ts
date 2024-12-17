@@ -175,6 +175,10 @@ router.post('/login', (req, res, next) => {
  *                   example: "Đã xảy ra lỗi khi đăng xuất."
  */
 app.post('/logout', (req, res) => {
+    res.header('Access-Control-Allow-Origin', '*');
+    res.header('Access-Control-Allow-Methods', 'POST, OPTIONS');
+    res.header('Access-Control-Allow-Headers', 'Content-Type, Accept');
+  
     req.session.destroy((err) => {
       if (err) {
         return res.status(500).json({ error: 'Không thể đăng xuất' });
