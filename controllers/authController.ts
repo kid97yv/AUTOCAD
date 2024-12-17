@@ -118,11 +118,3 @@ console.log('Password:', password);
         return res.status(500).json({ error: 'Đã xảy ra lỗi trong quá trình đăng nhập' });
     }
 };
-export const handleLogout = (req: Request, res: Response): void => {
-    req.session.destroy(err => {
-        if (err) {
-            console.error('Error destroying session:', err);
-            return res.status(500).send('Error logging out.');
-        }
-        res.redirect('/'); // Redirect về trang chủ hoặc trang đăng nhập
-    });};

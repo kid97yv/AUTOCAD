@@ -150,16 +150,15 @@ router.post('/login', (req, res, next) => {
     });
     (0, authController_1.handleLogin)(req, res).catch((err) => next(err));
 });
-// Swagger documentation cho route /logout
 /**
  * @swagger
  * /auth/logout:
  *   post:
- *     summary: "Đăng xuất người dùng"
- *     description: "Đăng xuất người dùng khỏi hệ thống bằng cách hủy phiên làm việc."
+ *     summary: "* Đăng xuất người dùng"
+ *     description: "* Đăng xuất người dùng khỏi hệ thống bằng cách hủy phiên làm việc."
  *     responses:
  *       200:
- *         description: "Đăng xuất thành công."
+ *         description: "* Đăng xuất thành công."
  *         content:
  *           application/json:
  *             schema:
@@ -169,7 +168,7 @@ router.post('/login', (req, res, next) => {
  *                   type: string
  *                   example: "Đăng xuất thành công!"
  *       500:
- *         description: "Đã xảy ra lỗi khi hủy phiên làm việc."
+ *         description: "* Đã xảy ra lỗi khi hủy phiên làm việc."
  *         content:
  *           application/json:
  *             schema:
@@ -179,16 +178,14 @@ router.post('/login', (req, res, next) => {
  *                   type: string
  *                   example: "Đã xảy ra lỗi khi đăng xuất."
  */
-app.post('/auth/logout', (req, res) => {
-    res.header('Access-Control-Allow-Origin', '*');
-    res.header('Access-Control-Allow-Methods', 'POST, OPTIONS');
-    res.header('Access-Control-Allow-Headers', 'Content-Type, Accept');
+router.post('/logout', (req, res) => {
     req.session.destroy((err) => {
         if (err) {
-            return res.status(500).json({ error: 'Không thể đăng xuất' });
+            console.error('Error destroying session:', err);
+            return res.status(500).json({ error: 'Đã xảy ra lỗi khi đăng xuất.' });
         }
-        res.clearCookie('connect.sid');
-        res.status(200).json({ message: 'Đăng xuất thành công' });
+        // Trả về phản hồi JSON khi logout thành công
+        return res.status(200).json({ message: 'Đăng xuất thành công!' });
     });
 });
 router.use('/upload', upload_1.default);

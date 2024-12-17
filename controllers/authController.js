@@ -12,7 +12,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.handleLogout = exports.handleLogin = exports.handleRegister = void 0;
+exports.handleLogin = exports.handleRegister = void 0;
 const pg_1 = require("pg");
 // import bcrypt from 'bcrypt';
 const bcryptjs_1 = __importDefault(require("bcryptjs"));
@@ -112,13 +112,3 @@ const handleLogin = (req, res) => __awaiter(void 0, void 0, void 0, function* ()
     }
 });
 exports.handleLogin = handleLogin;
-const handleLogout = (req, res) => {
-    req.session.destroy(err => {
-        if (err) {
-            console.error('Error destroying session:', err);
-            return res.status(500).send('Error logging out.');
-        }
-        res.redirect('/'); // Redirect về trang chủ hoặc trang đăng nhập
-    });
-};
-exports.handleLogout = handleLogout;
