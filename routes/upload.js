@@ -317,8 +317,14 @@ const dxf_parser_1 = __importDefault(require("dxf-parser"));
 const pg_1 = require("pg");
 const autosave_1 = require("../autosave");
 const stream_1 = require("stream");
+const cors = require('cors');
 const router = express_1.default.Router();
 const parser = new dxf_parser_1.default();
+router.use(cors());
+router.use(cors({
+    origin: 'http://localhost:3030', // Swagger UI domain
+    credentials: true // Cho phép gửi cookies
+}));
 const storage = multer_1.default.diskStorage({
     destination: (req, file, cb) => {
         const dir = 'uploads/';
@@ -344,18 +350,51 @@ const pool = new pg_1.Pool({
  * @swagger
  * /upload:
  *   post:
- *     description: Upload a DXF file and process it
+ *     summary: "* Upload a DXF file"
+ *     description: "* Uploads a DXF file, parses it, and stores it in the database."
+ *     consumes:
+ *       - multipart/form-data
  *     parameters:
  *       - in: formData
  *         name: file
- *         type: file
- *         description: The DXF file to upload
+ *         description: "* The DXF file to upload."
  *         required: true
+ *         type: file
+ *       - in: formData
+ *         name: userId
+ *         description: "* The user ID for associating the file."
+ *         required: true
+ *         type: string
  *     responses:
  *       200:
- *         description: File uploaded and processed successfully
+ *         description: "* File uploaded successfully."
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "File uploaded successfully"
+ *                 file:
+ *                   type: object
+ *                   properties:
+ *                     filename:
+ *                       type: string
+ *                       example: "example.dxf"
+ *                     filePath:
+ *                       type: string
+ *                       example: "/uploads/example.dxf"
+ *                     readLink:
+ *                       type: string
+ *                       example: "/read-dxf/example.dxf"
+ *                     downloadLink:
+ *                       type: string
+ *                       example: "/download/example.dxf"
  *       400:
- *         description: Invalid file or file processing error
+ *         description: "* Invalid file or missing required sections in the DXF file."
+ *       500:
+ *         description: "* Error processing file."
  */
 router.post('/upload', upload.single('file'), (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     var _a;
@@ -495,6 +534,28 @@ const isAuthenticated = (req, res, next) => {
 //          res.status(500).send('Error retrieving file information.');
 //     }
 // });
+/**
+* @swagger
+* /download/{id}:
+*   get:
+*     description: Download a modified DXF file with filtered entities
+*     parameters:
+*       - in: path
+*         name: id
+*         required: true  # * Trường bắt buộc
+*         type: string
+*         description: The unique ID of the DXF file to download (required)  # * Trường bắt buộc
+*     responses:
+*       200:
+*         description: File downloaded successfully
+*         schema:
+*           type: string
+*           format: binary
+*       404:
+*         description: File not found
+*       500:
+*         description: Error retrieving or processing the file
+*/
 router.get('/download/:id', (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     const fileId = req.params.id;
     try {
@@ -560,10 +621,64 @@ function createModifiedDxfString(user, scale, entities) {
  * @swagger
  * /history:
  *   get:
- *     description: Get the history of uploaded files for the authenticated user
+ *     summary: Get the history of uploaded files for the authenticated user
+ *     description: Fetches the list of uploaded files for the authenticated user
  *     responses:
  *       200:
  *         description: A list of uploaded files
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 type: object
+ *                 properties:
+ *                   id:
+ *                     type: integer
+ *                   fileName:
+ *                     type: string
+ *                   uploadedAt:
+ *                     type: string
+ *                   user:
+ *                     type: string
+ *                   scale:
+ *                     type: object
+ *                     properties:
+ *                       extmin:
+ *                         type: array
+ *                         items:
+ *                           type: number
+ *                       extmax:
+ *                         type: array
+ *                         items:
+ *                           type: number
+ *                       isScaleOneToOne:
+ *                         type: boolean
+ *                   entities:
+ *                     type: array
+ *                     items:
+ *                       type: object
+ *                       properties:
+ *                         type:
+ *                           type: string
+ *                         handle:
+ *                           type: string
+ *                         ownerHandle:
+ *                           type: string
+ *                         layer:
+ *                           type: string
+ *                         colorIndex:
+ *                           type: integer
+ *                         color:
+ *                           type: integer
+ *                         lineweight:
+ *                           type: integer
+ *                         center:
+ *                           type: array
+ *                           items:
+ *                             type: number
+ *                         radius:
+ *                           type: number
  *       401:
  *         description: Unauthorized
  */
@@ -625,18 +740,70 @@ router.get('/history', isAuthenticated, (req, res) => __awaiter(void 0, void 0, 
 }));
 /**
  * @swagger
- * /read-dxf/{filename}:
+ * /read-dxf/{fileId}:
  *   get:
- *     description: Read the content of a DXF file
+ *     summary: Read the content of a DXF file
+ *     description: Reads the content of a DXF file and returns the entities and scale information.
  *     parameters:
  *       - in: path
- *         name: filename
+ *         name: fileId
  *         type: string
- *         description: The name of the DXF file to read
+ *         description: The ID of the DXF file to read
  *         required: true
  *     responses:
  *       200:
  *         description: The content of the DXF file
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 fileId:
+ *                   type: string
+ *                 fileName:
+ *                   type: string
+ *                 user:
+ *                   type: string
+ *                 scale:
+ *                   type: object
+ *                   properties:
+ *                     extmin:
+ *                       type: array
+ *                       items:
+ *                         type: number
+ *                     extmax:
+ *                       type: array
+ *                       items:
+ *                         type: number
+ *                     isScaleOneToOne:
+ *                       type: boolean
+ *                 entities:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       type:
+ *                         type: string
+ *                       handle:
+ *                         type: string
+ *                       ownerHandle:
+ *                         type: string
+ *                       layer:
+ *                         type: string
+ *                       colorIndex:
+ *                         type: integer
+ *                       color:
+ *                         type: integer
+ *                       lineweight:
+ *                         type: integer
+ *                       center:
+ *                         type: array
+ *                         items:
+ *                           type: number
+ *                       radius:
+ *                         type: number
+ *       404:
+ *         description: File not found
  *       500:
  *         description: Error reading or parsing the file
  */
