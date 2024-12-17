@@ -1,21 +1,23 @@
 import express, { Request, Response, NextFunction } from 'express';
 import { handleLogin, handleRegister } from '../controllers/authController';
 import uploadMiddleware from './upload'; 
+import swaggerUi from 'swagger-ui-express';  // Import đúng swagger-ui-express
+import path from 'path';
+import fs from 'fs';
+import session from 'express-session';
+const bodyParser = require('body-parser');
 
 const router = express.Router();
+
 const cors = require('cors');
-router.use(cors());
-router.get('/', (req: Request, res: Response) => {
-    res.send('Welcome to my app!');
-});
-router.use(cors({
-    origin: 'http://localhost:3030',  // Swagger UI domain
-    credentials: true  // Cho phép gửi cookies
-}));
-// router.get('/register', (req: Request, res: Response) => {
-//     const errorMessages = req.flash('error') || [];
-//     res.render('register', { errorMessages });
-// });
+
+const app = express();
+app.use(session({
+    secret: 'your_secret_key',  // Thay thế bằng secret thực của bạn
+    resave: false,
+    saveUninitialized: true,
+    cookie: { httpOnly: true, maxAge: 3600000 }  // Cookie có thời gian sống
+  }));
 
 /**
  * @swagger
@@ -70,6 +72,7 @@ router.use(cors({
  */
 
 router.post('/register', async (req: Request, res: Response) => {
+    
     try {
         await handleRegister(req, res); // Xử lý đăng ký
     } catch (err) {
@@ -78,9 +81,9 @@ router.post('/register', async (req: Request, res: Response) => {
 });
 
 
-// // router.get('/login', (req: Request, res: Response) => {
-// //     res.render('login'); 
-// // });
+// // // router.get('/login', (req: Request, res: Response) => {
+// // //     res.render('login'); 
+// // // });
 
 /**
  * @swagger
@@ -104,6 +107,13 @@ router.post('/register', async (req: Request, res: Response) => {
  *               type: string
  *               description: "* Mật khẩu của người dùng."
  *               example: "password123"
+ *       - in: cookie
+ *         name: user_session
+ *         description: "* Cookie chứa thông tin phiên làm việc."
+ *         required: true
+ *         schema:
+ *           type: string
+ *           example: "your_session_value"
  *     responses:
  *       200:
  *         description: "* Đăng nhập thành công và trả về thông tin người dùng."
@@ -132,8 +142,12 @@ router.post('/register', async (req: Request, res: Response) => {
  *         description: "* Đã xảy ra lỗi trong quá trình đăng nhập."
  */
 
-
 router.post('/login', (req, res, next) => {
+    res.cookie('user_session', 'your_session_value', {
+        httpOnly: true,  // Đảm bảo cookie không thể bị truy cập qua JavaScript
+        secure: false,   // Chỉ sử dụng true nếu bạn đang chạy qua HTTPS
+        maxAge: 3600000  // Cookie hết hạn sau 1 giờ
+      });
     handleLogin(req, res).catch((err) => next(err));
 });
 
@@ -166,7 +180,6 @@ router.post('/login', (req, res, next) => {
  *                   type: string
  *                   example: "Đã xảy ra lỗi khi đăng xuất."
  */
-
 router.post('/logout', (req: Request, res: Response) => {
     req.session.destroy((err) => {
         if (err) {
@@ -178,7 +191,6 @@ router.post('/logout', (req: Request, res: Response) => {
         return res.status(200).json({ message: 'Đăng xuất thành công!' });
     });
 });
-
 
 
 router.use('/upload', uploadMiddleware);

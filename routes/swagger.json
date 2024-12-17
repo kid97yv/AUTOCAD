@@ -1,0 +1,80 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "API Documentation",
+    "version": "1.0.0",
+    "description": "Tài liệu API với Swagger"
+  },
+  "paths": {
+    "/upload": {
+      "post": {
+        "summary": "* Upload a DXF file",
+        "description": "* Uploads a DXF file, parses it, and stores it in the database.",
+        "consumes": [
+          "multipart/form-data"
+        ],
+        "parameters": [
+          {
+            "in": "formData",
+            "name": "file",
+            "description": "* The DXF file to upload.",
+            "required": true,
+            "type": "file"
+          },
+          {
+            "in": "formData",
+            "name": "userId",
+            "description": "* The user ID for associating the file.",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "* File uploaded successfully.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string",
+                      "example": "File uploaded successfully"
+                    },
+                    "file": {
+                      "type": "object",
+                      "properties": {
+                        "filename": {
+                          "type": "string",
+                          "example": "example.dxf"
+                        },
+                        "filePath": {
+                          "type": "string",
+                          "example": "/uploads/example.dxf"
+                        },
+                        "readLink": {
+                          "type": "string",
+                          "example": "/read-dxf/example.dxf"
+                        },
+                        "downloadLink": {
+                          "type": "string",
+                          "example": "/download/example.dxf"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "* Invalid file or missing required sections in the DXF file."
+          },
+          "500": {
+            "description": "* Error processing file."
+          }
+        }
+      }
+    }
+  }
+}

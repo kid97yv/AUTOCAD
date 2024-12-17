@@ -1,0 +1,483 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "My API",
+    "description": "API for Authentication with Basic Auth",
+    "version": "1.0.0"
+  },
+  "components": {
+    "securitySchemes": {
+      "BasicAuth": {
+        "type": "http",
+        "scheme": "basic"
+      }
+    }
+  },
+  "security": [
+    {
+      "BasicAuth": []
+    }
+  ],
+  "paths": {
+    "/auth/register": {
+      "post": {
+        "summary": "Đăng ký người dùng mới",
+        "description": "Đăng ký người dùng với tên người dùng, mật khẩu và email.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "username": {
+                    "type": "string"
+                  },
+                  "password": {
+                    "type": "string"
+                  },
+                  "email": {
+                    "type": "string",
+                    "format": "email"
+                  }
+                },
+                "required": ["username", "password", "email"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Người dùng đã được tạo thành công",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    },
+                    "user": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "integer"
+                        },
+                        "username": {
+                          "type": "string"
+                        },
+                        "email": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Tên đăng nhập đã tồn tại"
+          },
+          "400": {
+            "description": "Dữ liệu không hợp lệ"
+          }
+        }
+      }
+    },
+    "/auth/login": {
+      "post": {
+        "summary": "Login with username and password",
+        "operationId": "login",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "username": {
+                    "type": "string"
+                  },
+                  "password": {
+                    "type": "string"
+                  }
+                },
+                "required": ["username", "password"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Login successful"
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        }
+      }
+    },
+      "/auth/logout": {
+        "post": {
+          "summary": "Đăng xuất người dùng",
+          "description": "Đăng xuất người dùng khỏi hệ thống bằng cách hủy phiên làm việc.",
+          "responses": {
+            "200": {
+              "description": "Đăng xuất thành công.",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "type": "object",
+                    "properties": {
+                      "message": {
+                        "type": "string",
+                        "example": "Đăng xuất thành công!"
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "500": {
+              "description": "Đã xảy ra lỗi khi hủy phiên làm việc.",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "type": "object",
+                    "properties": {
+                      "error": {
+                        "type": "string",
+                        "example": "Đã xảy ra lỗi khi đăng xuất."
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "/upload": {
+      "post": {
+        "summary": "* Upload a DXF file",
+        "description": "* Uploads a DXF file, parses it, and stores it in the database.",
+        "consumes": [
+          "multipart/form-data"
+        ],
+        "parameters": [
+          {
+            "in": "formData",
+            "name": "file",
+            "description": "* The DXF file to upload.",
+            "required": true,
+            "type": "file"
+          },
+          {
+            "in": "formData",
+            "name": "userId",
+            "description": "* The user ID for associating the file.",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "* File uploaded successfully.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string",
+                      "example": "File uploaded successfully"
+                    },
+                    "file": {
+                      "type": "object",
+                      "properties": {
+                        "filename": {
+                          "type": "string",
+                          "example": "example.dxf"
+                        },
+                        "filePath": {
+                          "type": "string",
+                          "example": "/uploads/example.dxf"
+                        },
+                        "readLink": {
+                          "type": "string",
+                          "example": "/read-dxf/example.dxf"
+                        },
+                        "downloadLink": {
+                          "type": "string",
+                          "example": "/download/example.dxf"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "* Invalid file or missing required sections in the DXF file."
+          },
+          "500": {
+            "description": "* Error processing file."
+          }
+        }
+      }
+    },
+    "/autosave": {
+      "post": {
+        "description": "Start autosave process",
+        "responses": {
+          "200": {
+            "description": "Autosave initiated"
+          }
+        }
+      }
+    },
+    "/download/{id}": {
+      "get": {
+        "description": "Download a modified DXF file with filtered entities",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "The unique ID of the DXF file to download (required)"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "File downloaded successfully",
+            "content": {
+              "application/dxf": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "File not found"
+          },
+          "500": {
+            "description": "Error retrieving or processing the file"
+          }
+        }
+      }
+    },
+    "/history": {
+      "get": {
+        "summary": "Get the history of uploaded files for the authenticated user",
+        "description": "Fetches the list of uploaded files for the authenticated user, including details like scale and entities in the DXF file.",
+        "responses": {
+          "200": {
+            "description": "A list of uploaded files",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "integer"
+                      },
+                      "fileName": {
+                        "type": "string"
+                      },
+                      "uploadedAt": {
+                        "type": "string"
+                      },
+                      "user": {
+                        "type": "string"
+                      },
+                      "scale": {
+                        "type": "object",
+                        "properties": {
+                          "extmin": {
+                            "type": "array",
+                            "items": {
+                              "type": "number"
+                            }
+                          },
+                          "extmax": {
+                            "type": "array",
+                            "items": {
+                              "type": "number"
+                            }
+                          },
+                          "isScaleOneToOne": {
+                            "type": "boolean"
+                          }
+                        }
+                      },
+                      "entities": {
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "properties": {
+                            "type": {
+                              "type": "string"
+                            },
+                            "handle": {
+                              "type": "string"
+                            },
+                            "ownerHandle": {
+                              "type": "string"
+                            },
+                            "layer": {
+                              "type": "string"
+                            },
+                            "colorIndex": {
+                              "type": "integer"
+                            },
+                            "color": {
+                              "type": "integer"
+                            },
+                            "lineweight": {
+                              "type": "integer"
+                            },
+                            "center": {
+                              "type": "array",
+                              "items": {
+                                "type": "number"
+                              }
+                            },
+                            "radius": {
+                              "type": "number"
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized - User is not authenticated."
+          },
+          "500": {
+            "description": "Internal server error while fetching file history."
+          }
+        }
+      }
+    },
+    "/read-dxf/{fileId}": {
+      "get": {
+        "summary": "Read the content of a DXF file",
+        "description": "Reads the content of a DXF file and returns the entities and scale information.",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "fileId",
+            "required": true,
+            "description": "The ID of the DXF file to read",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The content of the DXF file",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "fileId": {
+                      "type": "string"
+                    },
+                    "fileName": {
+                      "type": "string"
+                    },
+                    "user": {
+                      "type": "string"
+                    },
+                    "scale": {
+                      "type": "object",
+                      "properties": {
+                        "extmin": {
+                          "type": "array",
+                          "items": {
+                            "type": "number"
+                          }
+                        },
+                        "extmax": {
+                          "type": "array",
+                          "items": {
+                            "type": "number"
+                          }
+                        },
+                        "isScaleOneToOne": {
+                          "type": "boolean"
+                        }
+                      }
+                    },
+                    "entities": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "type": {
+                            "type": "string"
+                          },
+                          "handle": {
+                            "type": "string"
+                          },
+                          "ownerHandle": {
+                            "type": "string"
+                          },
+                          "layer": {
+                            "type": "string"
+                          },
+                          "colorIndex": {
+                            "type": "integer"
+                          },
+                          "color": {
+                            "type": "integer"
+                          },
+                          "lineweight": {
+                            "type": "integer"
+                          },
+                          "center": {
+                            "type": "array",
+                            "items": {
+                              "type": "number"
+                            }
+                          },
+                          "radius": {
+                            "type": "number"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "File not found"
+          },
+          "500": {
+            "description": "Error reading or parsing the file"
+          }
+        }
+      }
+    }
+  }
+  }
+  
+  
+

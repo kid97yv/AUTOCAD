@@ -10,76 +10,61 @@ const auth_1 = __importDefault(require("./routes/auth"));
 const express_session_1 = __importDefault(require("express-session"));
 const pg_1 = require("pg");
 const express_flash_1 = __importDefault(require("express-flash"));
-const swagger_ui_express_1 = __importDefault(require("swagger-ui-express")); // import swagger-ui-express
-const swagger_jsdoc_1 = __importDefault(require("swagger-jsdoc")); // import swagger-jsdoc
-const autosaveRoutes_1 = __importDefault(require("./routes/autosaveRoutes"));
+const fs_1 = __importDefault(require("fs"));
+const swagger_jsdoc_1 = __importDefault(require("swagger-jsdoc"));
+const swagger_ui_express_1 = __importDefault(require("swagger-ui-express"));
+const cors_1 = __importDefault(require("cors"));
 const app = (0, express_1.default)();
 const PORT = 3030;
-const cors = require('cors');
-app.use(cors());
+const corsOptions = {
+    origin: 'http://localhost:3030',
+    credentials: true,
+};
+app.use((0, cors_1.default)(corsOptions));
 const swaggerOptions = {
-    swaggerDefinition: {
+    definition: {
         openapi: '3.0.0',
         info: {
-            title: 'My API',
+            title: 'API Documentation',
             version: '1.0.0',
-            description: 'This is a simple API with Swagger documentation',
+            description: 'Tài liệu API với Swagger',
         },
-        servers: [
-            {
-                url: 'http://localhost:3030',
-            },
-        ],
     },
-    apis: ['./routes/*.js', './routes/*.ts'], // Adjust the paths to match your route files
+    apis: ['./routes/*.ts'],
 };
-app.use(cors({
-    origin: 'http://localhost:3030', // Swagger UI domain
-    credentials: true // Cho phép gửi cookies
-}));
 const swaggerSpec = (0, swagger_jsdoc_1.default)(swaggerOptions);
-// Serve Swagger documentation
-app.use('/api-docs', swagger_ui_express_1.default.serve, swagger_ui_express_1.default.setup(swaggerSpec));
-/**
- * @swagger
- * /hello:
- *   get:
- *     description: Returns a hello message
- *     responses:
- *       200:
- *         description: A hello message
- */
-app.get('/hello', (req, res) => {
-    res.send('Hello World!');
-});
-app.get('/hello', (req, res) => {
-    res.send('Hello World!');
-});
+const swaggerDocument = JSON.parse(fs_1.default.readFileSync(path_1.default.join(__dirname, 'swagger.json'), 'utf8'));
+app.use('/swagger', express_1.default.static(path_1.default.join(__dirname, 'swagger-ui')));
+app.use('/api-docs', swagger_ui_express_1.default.serve, swagger_ui_express_1.default.setup(swaggerDocument));
+app.use(express_1.default.json());
+app.use(express_1.default.urlencoded({ extended: true }));
+app.use((0, express_flash_1.default)()); // Middleware cho flash messages
+app.use((0, express_session_1.default)({
+    secret: 'your_secret_key',
+    resave: false,
+    saveUninitialized: true,
+    cookie: { httpOnly: true, maxAge: 3600000 }
+}));
 const pool = new pg_1.Pool({
     user: 'kid97yv',
     host: 'dpg-ctf66u5ds78s73dmv090-a.singapore-postgres.render.com',
     database: 'autocad',
     password: 'zObYyaejEq8Qsa3xFwKAI0DWUedCa50N',
     port: 5432,
-    ssl: { rejectUnauthorized: false }
+    ssl: { rejectUnauthorized: false },
 });
 app.set('view engine', 'ejs');
 app.set('views', path_1.default.join(__dirname, 'views'));
-app.use(express_1.default.json());
-app.use(express_1.default.urlencoded({ extended: true }));
-app.use((0, express_session_1.default)({
-    secret: 'your secret', // Thay đổi secret
-    resave: false,
-    saveUninitialized: true,
-}));
-app.use((0, express_flash_1.default)());
 app.use('/auth', auth_1.default);
-app.use(autosaveRoutes_1.default);
 app.use('/uploads', express_1.default.static(path_1.default.join(__dirname, 'uploads')));
 app.use('/', upload_1.default);
 app.use((req, res, next) => {
     console.log(`${req.method} ${req.url}`);
     next();
+});
+// Trang chủ
+app.get('/hello', (req, res) => {
+    res.send('Hello World!');
 });
 // Khởi động server
 app.listen(PORT, () => {

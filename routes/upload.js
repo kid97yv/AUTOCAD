@@ -309,22 +309,17 @@ Object.defineProperty(exports, "__esModule", { value: true });
 //         });
 // });
 // export default router;
-const express_1 = __importDefault(require("express"));
+const dxf_parser_1 = __importDefault(require("dxf-parser"));
 const multer_1 = __importDefault(require("multer"));
 const fs_1 = __importDefault(require("fs"));
-const path_1 = __importDefault(require("path"));
-const dxf_parser_1 = __importDefault(require("dxf-parser"));
+const express_1 = __importDefault(require("express"));
 const pg_1 = require("pg");
+const path_1 = __importDefault(require("path"));
 const autosave_1 = require("../autosave");
 const stream_1 = require("stream");
-const cors = require('cors');
+// Khởi tạo router và parser
 const router = express_1.default.Router();
 const parser = new dxf_parser_1.default();
-router.use(cors());
-router.use(cors({
-    origin: 'http://localhost:3030', // Swagger UI domain
-    credentials: true // Cho phép gửi cookies
-}));
 const storage = multer_1.default.diskStorage({
     destination: (req, file, cb) => {
         const dir = 'uploads/';
@@ -427,14 +422,16 @@ router.post('/upload', upload.single('file'), (req, res) => __awaiter(void 0, vo
         }
         req.session.filePath = filePath;
         req.session.fileName = req.file.filename;
-        yield pool.query('INSERT INTO "Files" (user_id, file_name, file_path, uploaded_at) VALUES ($1, $2, $3, NOW())', [userId, req.file.filename, filePath]);
+        // Lưu tệp vào cơ sở dữ liệu với ID và thông tin tệp
+        const result = yield pool.query('INSERT INTO "Files" (user_id, file_name, file_path, uploaded_at) VALUES ($1, $2, $3, NOW()) RETURNING id', [userId, req.file.filename, filePath]);
+        const fileId = result.rows[0].id; // Lấy ID tệp vừa được lưu
         const entitiesOnly = {
             entities: dxfData.entities,
         };
         const entitiesFileName = `entities_only_${req.file.filename}`;
         const entitiesFilePath = path_1.default.join(__dirname, '../uploads/', entitiesFileName);
         fs_1.default.writeFileSync(entitiesFilePath, JSON.stringify(entitiesOnly, null, 2));
-        // Trả về kết quả dưới dạng JSON
+        // Trả về kết quả dưới dạng JSON, sử dụng ID tệp trong downloadLink
         if (!res.headersSent) {
             res.status(200).json({
                 message: 'File uploaded successfully',
@@ -442,7 +439,7 @@ router.post('/upload', upload.single('file'), (req, res) => __awaiter(void 0, vo
                     filename: req.file.filename,
                     filePath: filePath,
                     readLink: `/read-dxf/${encodeURIComponent(req.file.filename)}`,
-                    downloadLink: `/download/${encodeURIComponent(entitiesFileName)}`
+                    downloadLink: `/download/${fileId}` // Sử dụng ID tệp thay vì tên tệp
                 }
             });
         }
@@ -468,40 +465,6 @@ router.post('/autosave', (req, res) => __awaiter(void 0, void 0, void 0, functio
     (0, autosave_1.startAutosave)(req, res);
     res.status(200).send('Autosave initiated.');
 }));
-/**
- * @swagger
- * /download/{filename}:
- *   get:
- *     description: Download a DXF file
- *     parameters:
- *       - in: path
- *         name: filename
- *         type: string
- *         description: The name of the DXF file to download
- *         required: true
- *     responses:
- *       200:
- *         description: File downloaded successfully
- *       404:
- *         description: File not found
- */
-// router.get('/download/:filename', async (req: Request, res: Response): Promise<void> => {
-//     const filename = req.params.filename;
-//     const filePath = path.join(__dirname, '../uploads/', filename);
-//     console.log('File path:', filePath); 
-//     console.log('File exists:', fs.existsSync(filePath)); 
-//     if (fs.existsSync(filePath)) {
-//         res.download(filePath, filename, (err) => {
-//             if (err) {
-//                 console.error('Error downloading file:', err);
-//                 res.status(500).send('Error downloading file.');
-//             }
-//         });
-//     } else {
-//         console.error('File not found:', filePath);
-//         res.status(404).send('File not found.');
-//     }
-// });
 const isAuthenticated = (req, res, next) => {
     if (req.session.userId) {
         return next();
@@ -535,6 +498,7 @@ const isAuthenticated = (req, res, next) => {
 //     }
 // });
 /**
+/**
 * @swagger
 * /download/{id}:
 *   get:
@@ -542,15 +506,17 @@ const isAuthenticated = (req, res, next) => {
 *     parameters:
 *       - in: path
 *         name: id
-*         required: true  # * Trường bắt buộc
+*         required: true
 *         type: string
-*         description: The unique ID of the DXF file to download (required)  # * Trường bắt buộc
+*         description: The unique ID of the DXF file to download (required)
 *     responses:
 *       200:
 *         description: File downloaded successfully
-*         schema:
-*           type: string
-*           format: binary
+*         content:
+*           application/dxf:
+*             schema:
+*               type: string
+*               format: binary
 *       404:
 *         description: File not found
 *       500:
@@ -621,11 +587,13 @@ function createModifiedDxfString(user, scale, entities) {
  * @swagger
  * /history:
  *   get:
- *     summary: Get the history of uploaded files for the authenticated user
- *     description: Fetches the list of uploaded files for the authenticated user
+ *     summary: "Get the history of uploaded files for the authenticated user"
+ *     description: "Fetches the list of uploaded files for the authenticated user, including details like scale and entities in the DXF file."
+ *     security:
+ *       - bearerAuth: []  # Nếu bạn sử dụng JWT hoặc cơ chế xác thực khác
  *     responses:
  *       200:
- *         description: A list of uploaded files
+ *         description: "A list of uploaded files"
  *         content:
  *           application/json:
  *             schema:
@@ -680,7 +648,9 @@ function createModifiedDxfString(user, scale, entities) {
  *                         radius:
  *                           type: number
  *       401:
- *         description: Unauthorized
+ *         description: "Unauthorized - User is not authenticated."
+ *       500:
+ *         description: "Internal server error while fetching file history."
  */
 router.get('/history', isAuthenticated, (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     const userId = req.session.userId;
@@ -700,35 +670,13 @@ router.get('/history', isAuthenticated, (req, res) => __awaiter(void 0, void 0, 
                 console.error(`File not found: ${fullPath}`);
                 continue;
             }
-            const dxfData = fs_1.default.readFileSync(fullPath, 'utf-8');
-            const parsedData = parser.parseSync(dxfData);
-            if (!parsedData) {
-                console.error('Error parsing DXF file.');
-                continue;
-            }
-            const entities = parsedData.entities.map((entity) => ({
-                type: entity.type,
-                handle: entity.handle,
-                ownerHandle: entity.ownerHandle,
-                layer: entity.layer,
-                colorIndex: entity.colorIndex,
-                color: entity.color,
-                lineweight: entity.lineweight,
-                center: entity.center,
-                radius: entity.radius
-            }));
-            const scale = {
-                extmin: parsedData.header.$EXTMIN,
-                extmax: parsedData.header.$EXTMAX,
-                isScaleOneToOne: parsedData.header && parsedData.header['$INSUNITS'] === 1
-            };
+            // Cập nhật phản hồi chỉ bao gồm thông tin cơ bản và link tải file
             historyResponse.push({
                 id,
                 fileName: file_name,
                 uploadedAt: uploaded_at,
                 user: upload_user,
-                scale,
-                entities
+                downloadUrl: `/download/${id}` // Đường dẫn tải file
             });
         }
         res.json(historyResponse);
@@ -742,17 +690,18 @@ router.get('/history', isAuthenticated, (req, res) => __awaiter(void 0, void 0, 
  * @swagger
  * /read-dxf/{fileId}:
  *   get:
- *     summary: Read the content of a DXF file
- *     description: Reads the content of a DXF file and returns the entities and scale information.
+ *     summary: "Read the content of a DXF file"
+ *     description: "Reads the content of a DXF file and returns the entities and scale information."
  *     parameters:
  *       - in: path
  *         name: fileId
- *         type: string
- *         description: The ID of the DXF file to read
  *         required: true
+ *         description: "The ID of the DXF file to read"
+ *         schema:
+ *           type: string
  *     responses:
  *       200:
- *         description: The content of the DXF file
+ *         description: "The content of the DXF file"
  *         content:
  *           application/json:
  *             schema:
@@ -803,9 +752,9 @@ router.get('/history', isAuthenticated, (req, res) => __awaiter(void 0, void 0, 
  *                       radius:
  *                         type: number
  *       404:
- *         description: File not found
+ *         description: "File not found"
  *       500:
- *         description: Error reading or parsing the file
+ *         description: "Error reading or parsing the file"
  */
 router.get('/read-dxf/:fileId', (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     const fileId = req.params.fileId;
