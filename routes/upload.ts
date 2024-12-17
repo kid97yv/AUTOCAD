@@ -420,7 +420,7 @@ const pool = new Pool({
  *       - in: formData
  *         name: userId
  *         description: "* The user ID for associating the file."
- *         required: true
+ *         required: false   # Chuyển từ true thành false
  *         type: string
  *     responses:
  *       200:
@@ -453,6 +453,7 @@ const pool = new Pool({
  *       500:
  *         description: "* Error processing file."
  */
+
 router.post('/upload', upload.single('file'), async (req: Request, res: Response): Promise<void> => {
     const filePath = path.join(__dirname, '../uploads/', req.file?.filename || '');
     const userId = (req.session as any).userId;

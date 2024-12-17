@@ -158,7 +158,8 @@
           }
         }
       },
-      "/upload": {
+      "paths": {
+    "/upload": {
       "post": {
         "summary": "* Upload a DXF file",
         "description": "* Uploads a DXF file, parses it, and stores it in the database.",
@@ -177,7 +178,7 @@
             "in": "formData",
             "name": "userId",
             "description": "* The user ID for associating the file.",
-            "required": true,
+            "required": false,
             "type": "string"
           }
         ],
@@ -227,7 +228,9 @@
           }
         }
       }
-    },
+    }
+  }
+},
     "/autosave": {
       "post": {
         "description": "Start autosave process",
