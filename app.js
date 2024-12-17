@@ -16,11 +16,12 @@ const swagger_ui_express_1 = __importDefault(require("swagger-ui-express"));
 const cors_1 = __importDefault(require("cors"));
 const app = (0, express_1.default)();
 const PORT = 3030;
-const corsOptions = {
-    origin: 'http://localhost:3030',
-    credentials: true,
-};
-app.use((0, cors_1.default)(corsOptions));
+// const corsOptions = {
+//     origin: 'http://localhost:3030',
+//     credentials: true,  
+// };
+// app.use(cors(corsOptions));
+app.use((0, cors_1.default)());
 const swaggerOptions = {
     definition: {
         openapi: '3.0.0',

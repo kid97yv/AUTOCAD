@@ -12,12 +12,13 @@ import cors from 'cors';
 const app = express();
 const PORT = 3030;
 
-const corsOptions = {
-    origin: 'http://localhost:3030',
-    credentials: true,  
-};
-app.use(cors(corsOptions));
+// const corsOptions = {
+//     origin: 'http://localhost:3030',
+//     credentials: true,  
+// };
+// app.use(cors(corsOptions));
 
+app.use(cors());
 
 const swaggerOptions = {
     definition: {
