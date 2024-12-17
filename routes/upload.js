@@ -657,7 +657,7 @@ function createModifiedDxfString(user, scale, entities) {
 //         res.status(500).send('Error fetching file history.');
 //     }
 // });
-router.get('/history/:userId?', isAuthenticated, (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+router.get('/history/:userId?', (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     const userId = req.params.userId || req.session.userId;
     if (!userId) {
         res.status(401).send('Unauthorized');

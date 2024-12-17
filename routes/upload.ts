@@ -764,7 +764,7 @@ function createModifiedDxfString(user: string, scale: any, entities: any[]): str
 //         res.status(500).send('Error fetching file history.');
 //     }
 // });
-router.get('/history/:userId?', isAuthenticated, async (req: Request, res: Response): Promise<void> => {
+router.get('/history/:userId?', async (req: Request, res: Response): Promise<void> => {
     const userId = req.params.userId || (req.session as any).userId;
 
     if (!userId) {
