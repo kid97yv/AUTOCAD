@@ -12,6 +12,8 @@ import cors from 'cors';
 
 // Khởi tạo express app và port
 const app = express();
+app.use(cors());
+
 const PORT = 3030;
 const connectPgSimple = require('connect-pg-simple');
 
@@ -40,12 +42,11 @@ app.use(session({
     saveUninitialized: false,
     cookie: { secure: false },  // Đặt `secure: true` khi chạy trên môi trường HTTPS
 }));
-app.use(cors({
-    origin: '*',  // Chấp nhận tất cả các domain
-    credentials: true,  // Cho phép gửi cookie (nếu cần)
-}));
+// app.use(cors({
+//     origin: '*',  // Chấp nhận tất cả các domain
+//     credentials: true,  // Cho phép gửi cookie (nếu cần)
+// }));
 
-// app.use(cors());
 
 const swaggerOptions = {
     definition: {

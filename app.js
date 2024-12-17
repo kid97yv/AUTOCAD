@@ -15,6 +15,7 @@ const swagger_ui_express_1 = __importDefault(require("swagger-ui-express"));
 const cors_1 = __importDefault(require("cors"));
 // Khởi tạo express app và port
 const app = (0, express_1.default)();
+app.use((0, cors_1.default)());
 const PORT = 3030;
 const connectPgSimple = require('connect-pg-simple');
 const pool = new pg_1.Pool({
@@ -42,11 +43,10 @@ app.use((0, express_session_1.default)({
     saveUninitialized: false,
     cookie: { secure: false }, // Đặt `secure: true` khi chạy trên môi trường HTTPS
 }));
-app.use((0, cors_1.default)({
-    origin: '*', // Chấp nhận tất cả các domain
-    credentials: true, // Cho phép gửi cookie (nếu cần)
-}));
-// app.use(cors());
+// app.use(cors({
+//     origin: '*',  // Chấp nhận tất cả các domain
+//     credentials: true,  // Cho phép gửi cookie (nếu cần)
+// }));
 const swaggerOptions = {
     definition: {
         openapi: '3.0.0',
