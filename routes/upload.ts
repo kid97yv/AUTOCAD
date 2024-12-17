@@ -371,7 +371,6 @@ import session from 'express-session';
 const router = express.Router();
 const parser = new DxfParser();
 
-// Cấu hình CORS chỉ với một thiết lập
 
 interface FileRecord {
     filename: string;
