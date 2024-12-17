@@ -358,7 +358,7 @@ const pool = new pg_1.Pool({
  *       - in: formData
  *         name: userId
  *         description: "* The user ID for associating the file."
- *         required: true
+ *         required: false   # Chuyển từ true thành false
  *         type: string
  *     responses:
  *       200:

@@ -101,7 +101,7 @@ const handleLogin = (req, res) => __awaiter(void 0, void 0, void 0, function* ()
         }
         // Nếu người dùng đăng nhập thành công, lưu trữ ID người dùng vào session
         req.session.userId = user.id;
-        return res.status(200).json({ message: 'Đăng nhập thành công!' });
+        return res.status(200).json({ message: 'Đăng nhập thành công!', userId: user.id });
     }
     catch (err) {
         console.error('Lỗi:', err);
