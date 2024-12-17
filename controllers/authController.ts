@@ -110,7 +110,7 @@ console.log('Password:', password);
 
         // Nếu người dùng đăng nhập thành công, lưu trữ ID người dùng vào session
         req.session.userId = user.id;
-        return res.status(200).json({ message: 'Đăng nhập thành công!' });
+        return res.status(200).json({ message: 'Đăng nhập thành công!',  userId: user.id});
     } catch (err) {
         console.error('Lỗi:', err);
         return res.status(500).json({ error: 'Đã xảy ra lỗi trong quá trình đăng nhập' });
