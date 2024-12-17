@@ -682,12 +682,17 @@ function createModifiedDxfString(user: string, scale: any, entities: any[]): str
 }
 /**
  * @swagger
- * /history:
+ * /history/{userId}:
  *   get:
- *     summary: "Get the history of uploaded files for the authenticated user"
- *     description: "Fetches the list of uploaded files for the authenticated user, including details like scale and entities in the DXF file."
- *     security:
- *       - bearerAuth: []  # Nếu bạn sử dụng JWT hoặc cơ chế xác thực khác
+ *     summary: "Get the history of uploaded files for a specific user"
+ *     description: "Fetches the list of uploaded files for a specific user. If userId is not provided, it fetches the files of the authenticated user."
+ *     parameters:
+ *       - name: userId
+ *         in: path
+ *         description: "The ID of the user whose files history is being fetched. If not provided, the authenticated user's files will be fetched."
+ *         required: false
+ *         schema:
+ *           type: string
  *     responses:
  *       200:
  *         description: "A list of uploaded files"
@@ -706,53 +711,59 @@ function createModifiedDxfString(user: string, scale: any, entities: any[]): str
  *                     type: string
  *                   user:
  *                     type: string
- *                   scale:
- *                     type: object
- *                     properties:
- *                       extmin:
- *                         type: array
- *                         items:
- *                           type: number
- *                       extmax:
- *                         type: array
- *                         items:
- *                           type: number
- *                       isScaleOneToOne:
- *                         type: boolean
- *                   entities:
- *                     type: array
- *                     items:
- *                       type: object
- *                       properties:
- *                         type:
- *                           type: string
- *                         handle:
- *                           type: string
- *                         ownerHandle:
- *                           type: string
- *                         layer:
- *                           type: string
- *                         colorIndex:
- *                           type: integer
- *                         color:
- *                           type: integer
- *                         lineweight:
- *                           type: integer
- *                         center:
- *                           type: array
- *                           items:
- *                             type: number
- *                         radius:
- *                           type: number
+ *                   downloadUrl:
+ *                     type: string
+ *                     description: "The URL to download the file"
  *       401:
  *         description: "Unauthorized - User is not authenticated."
  *       500:
  *         description: "Internal server error while fetching file history."
  */
 
+// router.get('/history', isAuthenticated, async (req: Request, res: Response): Promise<void> => {
+//     const userId = (req.session as any).userId;
 
-router.get('/history', isAuthenticated, async (req: Request, res: Response): Promise<void> => {
-    const userId = (req.session as any).userId;
+//     if (!userId) {
+//         res.status(401).send('Unauthorized');
+//         return;
+//     }
+
+//     try {
+//         // Truy vấn các tệp của người dùng
+//         const result = await pool.query('SELECT * FROM "Files" WHERE user_id = $1 ORDER BY uploaded_at DESC', [userId]);
+//         const files = result.rows;
+
+//         const historyResponse = [];
+
+//         for (const file of files) {
+//             const { file_name, uploaded_at, id, file_path, upload_user } = file;
+
+//             const fullPath = path.resolve(__dirname, 'uploads', file_path);  
+
+//             if (!fs.existsSync(fullPath)) {
+//                 console.error(`File not found: ${fullPath}`);
+//                 continue; 
+//             }
+
+//             // Cập nhật phản hồi chỉ bao gồm thông tin cơ bản và link tải file
+//             historyResponse.push({
+//                 id,
+//                 fileName: file_name,
+//                 uploadedAt: uploaded_at,
+//                 user: upload_user,
+//                 downloadUrl: `/download/${id}`  // Đường dẫn tải file
+//             });
+//         }
+
+//         res.json(historyResponse);
+//     } catch (err) {
+//         console.error('Error fetching file history:', err);
+//         res.status(500).send('Error fetching file history.');
+//     }
+// });
+router.get('/history/:userId?', isAuthenticated, async (req: Request, res: Response): Promise<void> => {
+    // Kiểm tra nếu có userId trong URL, nếu không lấy từ session
+    let userId = req.params.userId || (req.session as any).userId;
 
     if (!userId) {
         res.status(401).send('Unauthorized');
@@ -760,23 +771,25 @@ router.get('/history', isAuthenticated, async (req: Request, res: Response): Pro
     }
 
     try {
-        // Truy vấn các tệp của người dùng
+        // Truy vấn các tệp của người dùng từ database
         const result = await pool.query('SELECT * FROM "Files" WHERE user_id = $1 ORDER BY uploaded_at DESC', [userId]);
         const files = result.rows;
 
         const historyResponse = [];
 
+        // Duyệt qua các file và chuẩn bị phản hồi
         for (const file of files) {
             const { file_name, uploaded_at, id, file_path, upload_user } = file;
 
-            const fullPath = path.resolve(__dirname, 'uploads', file_path);  
+            const fullPath = path.resolve(__dirname, 'uploads', file_path);
 
+            // Kiểm tra file có tồn tại không
             if (!fs.existsSync(fullPath)) {
                 console.error(`File not found: ${fullPath}`);
-                continue; 
+                continue;
             }
 
-            // Cập nhật phản hồi chỉ bao gồm thông tin cơ bản và link tải file
+            // Thêm thông tin file vào phản hồi
             historyResponse.push({
                 id,
                 fileName: file_name,
@@ -786,7 +799,7 @@ router.get('/history', isAuthenticated, async (req: Request, res: Response): Pro
             });
         }
 
-        res.json(historyResponse);
+        res.json(historyResponse);  // Trả về dữ liệu file lịch sử
     } catch (err) {
         console.error('Error fetching file history:', err);
         res.status(500).send('Error fetching file history.');

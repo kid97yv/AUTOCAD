@@ -275,106 +275,63 @@
         }
       }
     },
-    "/history": {
-      "get": {
-        "summary": "Get the history of uploaded files for the authenticated user",
-        "description": "Fetches the list of uploaded files for the authenticated user, including details like scale and entities in the DXF file.",
-        "responses": {
-          "200": {
-            "description": "A list of uploaded files",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "type": "object",
-                    "properties": {
-                      "id": {
-                        "type": "integer"
-                      },
-                      "fileName": {
-                        "type": "string"
-                      },
-                      "uploadedAt": {
-                        "type": "string"
-                      },
-                      "user": {
-                        "type": "string"
-                      },
-                      "scale": {
-                        "type": "object",
-                        "properties": {
-                          "extmin": {
-                            "type": "array",
-                            "items": {
-                              "type": "number"
-                            }
-                          },
-                          "extmax": {
-                            "type": "array",
-                            "items": {
-                              "type": "number"
-                            }
-                          },
-                          "isScaleOneToOne": {
-                            "type": "boolean"
-                          }
-                        }
-                      },
-                      "entities": {
-                        "type": "array",
-                        "items": {
-                          "type": "object",
-                          "properties": {
-                            "type": {
-                              "type": "string"
-                            },
-                            "handle": {
-                              "type": "string"
-                            },
-                            "ownerHandle": {
-                              "type": "string"
-                            },
-                            "layer": {
-                              "type": "string"
-                            },
-                            "colorIndex": {
-                              "type": "integer"
-                            },
-                            "color": {
-                              "type": "integer"
-                            },
-                            "lineweight": {
-                              "type": "integer"
-                            },
-                            "center": {
-                              "type": "array",
-                              "items": {
-                                "type": "number"
-                              }
-                            },
-                            "radius": {
-                              "type": "number"
-                            }
-                          }
+      "/history/{userId}": {
+        "get": {
+          "summary": "Get the history of uploaded files for a specific user",
+          "description": "Fetches the list of uploaded files for a specific user. If userId is not provided, it fetches the files of the authenticated user.",
+          "parameters": [
+            {
+              "name": "userId",
+              "in": "path",
+              "description": "The ID of the user whose files history is being fetched. If not provided, the authenticated user's files will be fetched.",
+              "required": false,
+              "schema": {
+                "type": "string"
+              }
+            }
+          ],
+          "responses": {
+            "200": {
+              "description": "A list of uploaded files",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "integer"
+                        },
+                        "fileName": {
+                          "type": "string"
+                        },
+                        "uploadedAt": {
+                          "type": "string"
+                        },
+                        "user": {
+                          "type": "string"
+                        },
+                        "downloadUrl": {
+                          "type": "string",
+                          "description": "The URL to download the file"
                         }
                       }
                     }
                   }
                 }
               }
+            },
+            "401": {
+              "description": "Unauthorized - User is not authenticated."
+            },
+            "500": {
+              "description": "Internal server error while fetching file history."
             }
-          },
-          "401": {
-            "description": "Unauthorized - User is not authenticated."
-          },
-          "500": {
-            "description": "Internal server error while fetching file history."
           }
-        }
-      }
-    },
-    "/read-dxf/{fileId}": {
+          }
+        },
+        "/read-dxf/{fileId}": {
       "get": {
         "summary": "Read the content of a DXF file",
         "description": "Reads the content of a DXF file and returns the entities and scale information.",
@@ -479,7 +436,7 @@
       }
     }
   }
-}
+      }
   
   
   
