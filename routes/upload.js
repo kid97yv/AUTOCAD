@@ -735,28 +735,27 @@ router.get('/history/:userId?', (req, res) => __awaiter(void 0, void 0, void 0, 
             });
         }
         // Kiểm tra các file không tồn tại
-        const missingFiles = historyResponse.filter(file => !file.exists);
-        if (missingFiles.length > 0) {
-            // Thêm thông tin về các file không tồn tại vào phản hồi
-            res.json({
-                success: true,
-                files: historyResponse,
-                missingFiles: missingFiles.map(file => ({
-                    fileName: file.fileName,
-                    fullPath: file.fullPath,
-                    uploadedAt: file.uploadedAt,
-                    user: file.user,
-                })),
-            });
-        }
-        else {
-            // Nếu không có file nào bị thiếu
-            res.json({
-                success: true,
-                files: historyResponse,
-                missingFiles: [],
-            });
-        }
+        // const missingFiles = historyResponse.filter(file => !file.exists);
+        // if (missingFiles.length > 0) {
+        //     // Thêm thông tin về các file không tồn tại vào phản hồi
+        //     res.json({
+        //         success: true,
+        //         files: historyResponse,
+        //         missingFiles: missingFiles.map(file => ({
+        //             fileName: file.fileName,
+        //             fullPath: file.fullPath,
+        //             uploadedAt: file.uploadedAt,
+        //             user: file.user,
+        //         })),
+        //     });
+        // } else {
+        //     // Nếu không có file nào bị thiếu
+        //     res.json({
+        //         success: true,
+        //         files: historyResponse,
+        //         missingFiles: [],
+        //     });
+        // }
     }
     catch (err) {
         console.error('Error fetching file history:', err);
