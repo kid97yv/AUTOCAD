@@ -276,7 +276,7 @@
     "/history/{userId}": {
       "get": {
         "summary": "Get the history of uploaded files for a specific user",
-        "description": "Fetches the list of uploaded files for a specific user. If userId is not provided, it fetches the files of the authenticated user. The response includes details of files that do not exist.",
+        "description": "Fetches the list of uploaded files for a specific user. If userId is not provided, it fetches the files of the authenticated user.",
         "security": [
           {
             "bearerAuth": []
@@ -295,59 +295,38 @@
         ],
         "responses": {
           "200": {
-            "description": "A list of uploaded files and missing files information",
+            "description": "A list of uploaded files",
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "success": {
-                      "type": "boolean",
-                      "description": "Indicates if the request was successful."
-                    },
-                    "files": {
-                      "type": "array",
-                      "items": {
-                        "type": "object",
-                        "properties": {
-                          "id": {
-                            "type": "integer"
-                          },
-                          "fileName": {
-                            "type": "string"
-                          },
-                          "uploadedAt": {
-                            "type": "string"
-                          },
-                          "user": {
-                            "type": "string"
-                          },
-                          "downloadUrl": {
-                            "type": "string",
-                            "description": "The URL to download the file"
-                          }
-                        }
-                      }
-                    },
-                    "missingFiles": {
-                      "type": "array",
-                      "items": {
-                        "type": "object",
-                        "properties": {
-                          "fileName": {
-                            "type": "string"
-                          },
-                          "fullPath": {
-                            "type": "string",
-                            "description": "The full path of the file that does not exist."
-                          },
-                          "uploadedAt": {
-                            "type": "string"
-                          },
-                          "user": {
-                            "type": "string"
-                          }
-                        }
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "integer"
+                      },
+                      "fileName": {
+                        "type": "string"
+                      },
+                      "uploadedAt": {
+                        "type": "string",
+                        "format": "date-time"
+                      },
+                      "user": {
+                        "type": "string"
+                      },
+                      "downloadUrl": {
+                        "type": "string",
+                        "description": "The URL to download the file"
+                      },
+                      "exists": {
+                        "type": "boolean",
+                        "description": "Indicates if the file exists on the server."
+                      },
+                      "fullPath": {
+                        "type": "string",
+                        "description": "The full path of the file on the server."
                       }
                     }
                   }
