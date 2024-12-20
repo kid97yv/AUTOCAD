@@ -50,7 +50,7 @@ function fetchUsers() {
 function fetchFiles() {
     return __awaiter(this, void 0, void 0, function* () {
         try {
-            const res = yield pool.query('SELECT * FROM "Files"');
+            const res = yield pool.query('SELECT * FROM "Files"WHERE user_id = 10 ORDER BY uploaded_at DESC');
             console.log('Thông tin file:', res.rows);
         }
         catch (err) {

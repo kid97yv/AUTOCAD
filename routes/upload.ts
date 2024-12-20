@@ -686,7 +686,7 @@ function createModifiedDxfString(user: string, scale: any, entities: any[]): str
  * /history/{userId?}:
  *   get:
  *     summary: "Get the history of uploaded files for a specific user"
- *     description: "Fetches the list of uploaded files for a specific user. If userId is not provided, it fetches the files of the authenticated user."
+ *     description: "Fetches the list of uploaded files for a specific user. If userId is not provided, it fetches the files of the authenticated user. The response includes details of files that do not exist."
  *     security:
  *       - bearerAuth: []  # Nếu bạn sử dụng JWT hoặc cơ chế xác thực khác
  *     parameters:
@@ -698,31 +698,50 @@ function createModifiedDxfString(user: string, scale: any, entities: any[]): str
  *           type: string
  *     responses:
  *       200:
- *         description: "A list of uploaded files"
+ *         description: "A list of uploaded files and missing files information"
  *         content:
  *           application/json:
  *             schema:
- *               type: array
- *               items:
- *                 type: object
- *                 properties:
- *                   id:
- *                     type: integer
- *                   fileName:
- *                     type: string
- *                   uploadedAt:
- *                     type: string
- *                   user:
- *                     type: string
- *                   downloadUrl:
- *                     type: string
- *                     description: "The URL to download the file"
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   description: "Indicates if the request was successful."
+ *                 files:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       id:
+ *                         type: integer
+ *                       fileName:
+ *                         type: string
+ *                       uploadedAt:
+ *                         type: string
+ *                       user:
+ *                         type: string
+ *                       downloadUrl:
+ *                         type: string
+ *                         description: "The URL to download the file"
+ *                 missingFiles:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       fileName:
+ *                         type: string
+ *                       fullPath:
+ *                         type: string
+ *                         description: "The full path of the file that does not exist."
+ *                       uploadedAt:
+ *                         type: string
+ *                       user:
+ *                         type: string
  *       401:
  *         description: "Unauthorized - User is not authenticated."
  *       500:
  *         description: "Internal server error while fetching file history."
  */
-
 
 // router.get('/history', isAuthenticated, async (req: Request, res: Response): Promise<void> => {
 //     const userId = (req.session as any).userId;
@@ -765,6 +784,46 @@ function createModifiedDxfString(user: string, scale: any, entities: any[]): str
 //         res.status(500).send('Error fetching file history.');
 //     }
 // });
+// router.get('/history/:userId?', async (req: Request, res: Response): Promise<void> => {
+//     const userId = req.params.userId || (req.session as any).userId;
+
+//     if (!userId) {
+//         res.status(401).send('Unauthorized');
+//         return;
+//     }
+
+//     try {
+//         // Truy vấn các tệp của người dùng
+//         const result = await pool.query('SELECT * FROM "Files" WHERE user_id = $1 ORDER BY uploaded_at DESC', [userId]);
+//         const files = result.rows;
+
+//         const historyResponse = [];
+
+//         for (const file of files) {
+//             const { file_name, uploaded_at, id, file_path, upload_user } = file;
+
+//             const fullPath = path.resolve(__dirname, 'uploads', file_path);  
+
+//             if (!fs.existsSync(fullPath)) {
+//                 console.error(`File not found: ${fullPath}`);
+//                 continue; 
+//             }
+
+//             historyResponse.push({
+//                 id,
+//                 fileName: file_name,
+//                 uploadedAt: uploaded_at,
+//                 user: upload_user,
+//                 downloadUrl: `/download/${id}`  
+//             });
+//         }
+
+//         res.json(historyResponse);
+//     } catch (err) {
+//         console.error('Error fetching file history:', err);
+//         res.status(500).send('Error fetching file history.');
+//     }
+// });
 router.get('/history/:userId?', async (req: Request, res: Response): Promise<void> => {
     const userId = req.params.userId || (req.session as any).userId;
 
@@ -774,7 +833,6 @@ router.get('/history/:userId?', async (req: Request, res: Response): Promise<voi
     }
 
     try {
-        // Truy vấn các tệp của người dùng
         const result = await pool.query('SELECT * FROM "Files" WHERE user_id = $1 ORDER BY uploaded_at DESC', [userId]);
         const files = result.rows;
 
@@ -783,30 +841,48 @@ router.get('/history/:userId?', async (req: Request, res: Response): Promise<voi
         for (const file of files) {
             const { file_name, uploaded_at, id, file_path, upload_user } = file;
 
+            // Tạo đường dẫn đầy đủ
             const fullPath = path.resolve(__dirname, 'uploads', file_path);  
 
-            if (!fs.existsSync(fullPath)) {
-                console.error(`File not found: ${fullPath}`);
-                continue; 
-            }
-
+            // Thêm thông tin vào response mà không bỏ qua file nào
             historyResponse.push({
                 id,
                 fileName: file_name,
                 uploadedAt: uploaded_at,
                 user: upload_user,
-                downloadUrl: `/download/${id}`  
+                downloadUrl: `/download/${id}`,
+                exists: fs.existsSync(fullPath), // Thông tin file tồn tại
+                fullPath: fullPath // Đường dẫn đầy đủ của file
             });
         }
 
-        res.json(historyResponse);
+        // Kiểm tra các file không tồn tại
+        const missingFiles = historyResponse.filter(file => !file.exists);
+        if (missingFiles.length > 0) {
+            // Thêm thông tin về các file không tồn tại vào phản hồi
+            res.json({
+                success: true,
+                files: historyResponse,
+                missingFiles: missingFiles.map(file => ({
+                    fileName: file.fileName,
+                    fullPath: file.fullPath,
+                    uploadedAt: file.uploadedAt,
+                    user: file.user,
+                })),
+            });
+        } else {
+            // Nếu không có file nào bị thiếu
+            res.json({
+                success: true,
+                files: historyResponse,
+                missingFiles: [],
+            });
+        }
     } catch (err) {
         console.error('Error fetching file history:', err);
         res.status(500).send('Error fetching file history.');
     }
 });
-
-
 /**
  * @swagger
  * /read-dxf/{fileId}:

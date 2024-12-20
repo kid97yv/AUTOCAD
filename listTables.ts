@@ -38,7 +38,7 @@ async function fetchUsers(): Promise<void> {
 }
 async function fetchFiles(): Promise<void> {
     try {
-        const res = await pool.query('SELECT * FROM "Files"');
+        const res = await pool.query('SELECT * FROM "Files"WHERE user_id = 10 ORDER BY uploaded_at DESC');
         console.log('Thông tin file:', res.rows);
     } catch (err) {
         console.error('Lỗi:', err);
