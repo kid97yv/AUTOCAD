@@ -928,11 +928,11 @@ router.get('/read-dxf/:fileId', async (req: Request, res: Response): Promise<voi
         const result = await pool.query('SELECT * FROM "Files" WHERE id = $1', [fileId]);
 
         if (result.rows.length === 0) {
-             res.status(404).send('File not found.');
+            res.status(404).send('File not found.');
         }
 
         const file = result.rows[0];
-        const filePath = file.file_path;  
+        const filePath = file.file_path;
 
         const parser = new DxfParser();
 
@@ -948,43 +948,71 @@ router.get('/read-dxf/:fileId', async (req: Request, res: Response): Promise<voi
                     return res.status(500).send('Error parsing DXF file: No data returned.');
                 }
 
-                const entities = dxfData.entities.map((entity: any) => ({
-                    type: entity.type,
-                    handle: entity.handle,
-                    ownerHandle: entity.ownerHandle,
-                    layer: entity.layer,
-                    colorIndex: entity.colorIndex,
-                    color: entity.color,
-                    lineweight: entity.lineweight,
-                    center: entity.center,
-                    radius: entity.radius
-                }));
-
-                const scale = {
-                    extmin: dxfData.header.$EXTMIN,
-                    extmax: dxfData.header.$EXTMAX,
-                    isScaleOneToOne: dxfData.header && dxfData.header['$INSUNITS'] === 1
-                };
+                const entities = dxfData.entities.map((entity: any) => {
+                    switch (entity.type) {
+                        case 'LINE':
+                            return {
+                                type: entity.type,
+                                start: {
+                                    x: entity.startPoint.x,
+                                    y: entity.startPoint.y,
+                                },
+                                end: {
+                                    x: entity.endPoint.x,
+                                    y: entity.endPoint.y,
+                                },
+                            };
+                        case 'CIRCLE':
+                            return {
+                                type: entity.type,
+                                center: {
+                                    x: entity.center.x,
+                                    y: entity.center.y,
+                                },
+                                radius: entity.radius,
+                            };
+                        case 'POLYLINE':
+                            return {
+                                type: entity.type,
+                                vertices: entity.vertices.map((v: any) => ({
+                                    x: v.x,
+                                    y: v.y,
+                                })),
+                            };
+                        case 'ARC':
+                            return {
+                                type: entity.type,
+                                center: {
+                                    x: entity.center.x,
+                                    y: entity.center.y,
+                                },
+                                radius: entity.radius,
+                                startAngle: entity.startAngle,
+                                endAngle: entity.endAngle,
+                            };
+                        default:
+                            console.warn('Unsupported entity type:', entity.type);
+                            return null; // Bỏ qua các loại thực thể không hỗ trợ
+                    }
+                }).filter(Boolean); // Loại bỏ các thực thể null
 
                 res.json({
                     fileId: fileId,
                     fileName: file.file_name,
-                    user: file.upload_user,  
-                    scale,
-                    entities
+                    user: file.upload_user,
+                    entities,
                 });
-
             } catch (parseError) {
                 console.error('Error parsing DXF:', parseError);
                 return res.status(500).send('Error parsing DXF file.');
             }
         });
-
     } catch (err) {
         console.error('Error fetching file from database:', err);
-         res.status(500).send('Error fetching file from database.');
+        res.status(500).send('Error fetching file from database.');
     }
 });
+
 
 export default router;
 
