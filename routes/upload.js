@@ -588,7 +588,7 @@ function createModifiedDxfString(user, scale, entities) {
  * /history/{userId?}:
  *   get:
  *     summary: "Get the history of uploaded files for a specific user"
- *     description: "Fetches the list of uploaded files for a specific user. If userId is not provided, it fetches the files of the authenticated user."
+ *     description: "Fetches the list of uploaded files for a specific user. If userId is not provided, it fetches the files of the authenticated user. The response includes details of files that do not exist."
  *     security:
  *       - bearerAuth: []  # Nếu bạn sử dụng JWT hoặc cơ chế xác thực khác
  *     parameters:
@@ -600,32 +600,45 @@ function createModifiedDxfString(user, scale, entities) {
  *           type: string
  *     responses:
  *       200:
- *         description: "A list of uploaded files"
+ *         description: "A list of uploaded files and missing files information"
  *         content:
  *           application/json:
  *             schema:
- *               type: array
- *               items:
- *                 type: object
- *                 properties:
- *                   id:
- *                     type: integer
- *                   fileName:
- *                     type: string
- *                   uploadedAt:
- *                     type: string
- *                     format: date-time
- *                   user:
- *                     type: string
- *                   downloadUrl:
- *                     type: string
- *                     description: "The URL to download the file"
- *                   exists:
- *                     type: boolean
- *                     description: "Indicates if the file exists on the server."
- *                   fullPath:
- *                     type: string
- *                     description: "The full path of the file on the server."
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   description: "Indicates if the request was successful."
+ *                 files:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       id:
+ *                         type: integer
+ *                       fileName:
+ *                         type: string
+ *                       uploadedAt:
+ *                         type: string
+ *                       user:
+ *                         type: string
+ *                       downloadUrl:
+ *                         type: string
+ *                         description: "The URL to download the file"
+ *                 missingFiles:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       fileName:
+ *                         type: string
+ *                       fullPath:
+ *                         type: string
+ *                         description: "The full path of the file that does not exist."
+ *                       uploadedAt:
+ *                         type: string
+ *                       user:
+ *                         type: string
  *       401:
  *         description: "Unauthorized - User is not authenticated."
  *       500:
@@ -721,7 +734,28 @@ router.get('/history/:userId?', (req, res) => __awaiter(void 0, void 0, void 0, 
                 fullPath: fullPath // Đường dẫn đầy đủ của file
             });
         }
-        res.json(historyResponse);
+        // Kiểm tra các file không tồn tại
+        // const missingFiles = historyResponse.filter(file => !file.exists);
+        // if (missingFiles.length > 0) {
+        //     // Thêm thông tin về các file không tồn tại vào phản hồi
+        //     res.json({
+        //         success: true,
+        //         files: historyResponse,
+        //         missingFiles: missingFiles.map(file => ({
+        //             fileName: file.fileName,
+        //             fullPath: file.fullPath,
+        //             uploadedAt: file.uploadedAt,
+        //             user: file.user,
+        //         })),
+        //     });
+        // } else {
+        //     // Nếu không có file nào bị thiếu
+        //     res.json({
+        //         success: true,
+        //         files: historyResponse,
+        //         missingFiles: [],
+        //     });
+        // }
     }
     catch (err) {
         console.error('Error fetching file history:', err);
