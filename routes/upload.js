@@ -818,28 +818,58 @@ router.get('/read-dxf/:fileId', (req, res) => __awaiter(void 0, void 0, void 0, 
                 if (!dxfData) {
                     return res.status(500).send('Error parsing DXF file: No data returned.');
                 }
-                const entities = dxfData.entities.map((entity) => ({
-                    type: entity.type,
-                    handle: entity.handle,
-                    ownerHandle: entity.ownerHandle,
-                    layer: entity.layer,
-                    colorIndex: entity.colorIndex,
-                    color: entity.color,
-                    lineweight: entity.lineweight,
-                    center: entity.center,
-                    radius: entity.radius
-                }));
-                const scale = {
-                    extmin: dxfData.header.$EXTMIN,
-                    extmax: dxfData.header.$EXTMAX,
-                    isScaleOneToOne: dxfData.header && dxfData.header['$INSUNITS'] === 1
-                };
+                const entities = dxfData.entities.map((entity) => {
+                    switch (entity.type) {
+                        case 'LINE':
+                            return {
+                                type: entity.type,
+                                start: {
+                                    x: entity.startPoint.x,
+                                    y: entity.startPoint.y,
+                                },
+                                end: {
+                                    x: entity.endPoint.x,
+                                    y: entity.endPoint.y,
+                                },
+                            };
+                        case 'CIRCLE':
+                            return {
+                                type: entity.type,
+                                center: {
+                                    x: entity.center.x,
+                                    y: entity.center.y,
+                                },
+                                radius: entity.radius,
+                            };
+                        case 'POLYLINE':
+                            return {
+                                type: entity.type,
+                                vertices: entity.vertices.map((v) => ({
+                                    x: v.x,
+                                    y: v.y,
+                                })),
+                            };
+                        case 'ARC':
+                            return {
+                                type: entity.type,
+                                center: {
+                                    x: entity.center.x,
+                                    y: entity.center.y,
+                                },
+                                radius: entity.radius,
+                                startAngle: entity.startAngle,
+                                endAngle: entity.endAngle,
+                            };
+                        default:
+                            console.warn('Unsupported entity type:', entity.type);
+                            return null; // Bỏ qua các loại thực thể không hỗ trợ
+                    }
+                }).filter(Boolean); // Loại bỏ các thực thể null
                 res.json({
                     fileId: fileId,
                     fileName: file.file_name,
                     user: file.upload_user,
-                    scale,
-                    entities
+                    entities,
                 });
             }
             catch (parseError) {
