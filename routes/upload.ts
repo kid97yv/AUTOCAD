@@ -407,24 +407,24 @@ const pool = new Pool({
  * @swagger
  * /upload:
  *   post:
- *     summary: "* Upload a DXF file"
- *     description: "* Uploads a DXF file, parses it, and stores it in the database."
+ *     summary: "Upload a DXF file"
+ *     description: "Uploads a DXF file, parses it, and stores it in the database."
  *     consumes:
  *       - multipart/form-data
  *     parameters:
  *       - in: formData
  *         name: file
- *         description: "* The DXF file to upload."
+ *         description: "The DXF file to upload."
  *         required: true
  *         type: file
  *       - in: formData
  *         name: userId
- *         description: "* The user ID for associating the file."
- *         required: false   # Chuyển từ true thành false
+ *         description: "The user ID for associating the file."
+ *         required: false
  *         type: string
  *     responses:
  *       200:
- *         description: "* File uploaded successfully."
+ *         description: "File uploaded successfully."
  *         content:
  *           application/json:
  *             schema:
@@ -436,6 +436,9 @@ const pool = new Pool({
  *                 file:
  *                   type: object
  *                   properties:
+ *                     id:
+ *                       type: integer
+ *                       example: 123
  *                     filename:
  *                       type: string
  *                       example: "example.dxf"
@@ -447,13 +450,12 @@ const pool = new Pool({
  *                       example: "/read-dxf/example.dxf"
  *                     downloadLink:
  *                       type: string
- *                       example: "/download/example.dxf"
+ *                       example: "/download/123"
  *       400:
- *         description: "* Invalid file or missing required sections in the DXF file."
+ *         description: "Invalid file or missing required sections in the DXF file."
  *       500:
- *         description: "* Error processing file."
+ *         description: "Error processing file."
  */
-
 router.post('/upload', upload.single('file'), async (req: Request, res: Response): Promise<void> => {
     const filePath = path.join(__dirname, '../uploads/', req.file?.filename || '');
     const userId = (req.session as any).userId;
@@ -478,49 +480,35 @@ router.post('/upload', upload.single('file'), async (req: Request, res: Response
             return;
         }
 
-        // Kiểm tra tệp đã tồn tại trong cơ sở dữ liệu
         const checkFileExists = await pool.query('SELECT * FROM "Files" WHERE file_name = $1', [req.file.filename]);
 
+        let newFileName = req.file.filename;
+        let newFilePath = filePath;
+        let fileId;
+
         if (checkFileExists.rows.length > 0) {
-            // Nếu tệp đã tồn tại, thay đổi tên tệp (ví dụ: thêm UUID hoặc thời gian)
-            const newFileName = `${Date.now()}_${req.file.filename}`; // Thêm thời gian vào tên tệp
-            const newFilePath = path.join(__dirname, '../uploads/', newFileName);
-
-            // Di chuyển tệp cũ sang tên mới
+            newFileName = `${Date.now()}_${req.file.filename}`; 
+            newFilePath = path.join(__dirname, '../uploads/', newFileName);
             fs.renameSync(filePath, newFilePath);
-
-            // Cập nhật lại đường dẫn trong cơ sở dữ liệu
-            await pool.query(
-                'INSERT INTO "Files" (user_id, file_name, file_path, uploaded_at) VALUES ($1, $2, $3, NOW()) RETURNING id',
-                [userId, newFileName, newFilePath]
-            );
-
-            res.status(200).json({
-                message: 'File uploaded successfully',
-                file: {
-                    filename: newFileName,
-                    filePath: newFilePath,
-                    readLink: `/read-dxf/${encodeURIComponent(newFileName)}`,
-                    downloadLink: `/download/${newFileName}`
-                }
-            });
-        } else {
-            // Nếu tệp chưa tồn tại, lưu vào cơ sở dữ liệu bình thường
-            await pool.query(
-                'INSERT INTO "Files" (user_id, file_name, file_path, uploaded_at) VALUES ($1, $2, $3, NOW()) RETURNING id',
-                [userId, req.file.filename, filePath]
-            );
-
-            res.status(200).json({
-                message: 'File uploaded successfully',
-                file: {
-                    filename: req.file.filename,
-                    filePath: filePath,
-                    readLink: `/read-dxf/${encodeURIComponent(req.file.filename)}`,
-                    downloadLink: `/download/${req.file.filename}`
-                }
-            });
         }
+
+        const result = await pool.query(
+            'INSERT INTO "Files" (user_id, file_name, file_path, uploaded_at) VALUES ($1, $2, $3, NOW()) RETURNING id',
+            [userId, newFileName, newFilePath]
+        );
+
+        fileId = result.rows[0].id;
+
+        res.status(200).json({
+            message: 'File uploaded successfully',
+            file: {
+                id: fileId,
+                filename: newFileName,
+                filePath: newFilePath,
+                readLink: `/read-dxf/${encodeURIComponent(newFileName)}`,
+                downloadLink: `/download/${fileId}`
+            }
+        });
     } catch (err) {
         console.error('Error processing file:', err);
         if (!res.headersSent) {
@@ -528,7 +516,6 @@ router.post('/upload', upload.single('file'), async (req: Request, res: Response
         }
     }
 });
-
 
 
 /**
@@ -855,6 +842,10 @@ router.get('/history/:userId?', async (req: Request, res: Response): Promise<voi
                 fullPath: fullPath // Đường dẫn đầy đủ của file
             });
         }
+        res.json({
+            success: true,
+            files: historyResponse,
+        });
 
         // Kiểm tra các file không tồn tại
         // const missingFiles = historyResponse.filter(file => !file.exists);
