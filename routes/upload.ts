@@ -366,6 +366,8 @@ import { Pool } from 'pg';
 import path from 'path';
 import { startAutosave } from '../autosave';
 import { Readable } from 'stream';
+import FileReader from 'filereader';
+
 import session from 'express-session';
 // Khởi tạo router và parser
 const router = express.Router();
@@ -630,6 +632,7 @@ router.get('/download/:id', async (req: Request, res: Response): Promise<void> =
                     center: entity.center,
                     radius: entity.radius
                 };
+                console.log("filteredEntity:", filteredEntity);
                 return filteredEntity;
             });
 
@@ -954,12 +957,14 @@ router.get('/read-dxf/:fileId', async (req: Request, res: Response): Promise<voi
 
         if (result.rows.length === 0) {
             res.status(404).send('File not found.');
+            return;
         }
 
         const file = result.rows[0];
         const filePath = file.file_path;
 
         const parser = new DxfParser();
+        const fileReader = new FileReader();
 
         fs.readFile(filePath, 'utf8', (err: NodeJS.ErrnoException | null, data: string) => {
             if (err) {
@@ -972,57 +977,11 @@ router.get('/read-dxf/:fileId', async (req: Request, res: Response): Promise<voi
                 if (!dxfData) {
                     return res.status(500).send('Error parsing DXF file: No data returned.');
                 }
-
-                const entities = dxfData.entities.map((entity: any) => {
-                    switch (entity.type) {
-                        case 'LINE':
-                            return {
-                                type: entity.type,
-                                start: {
-                                    x: entity.startPoint.x,
-                                    y: entity.startPoint.y,
-                                },
-                                end: {
-                                    x: entity.endPoint.x,
-                                    y: entity.endPoint.y,
-                                },
-                            };
-                        case 'CIRCLE':
-                            return {
-                                type: entity.type,
-                                center: {
-                                    x: entity.center.x,
-                                    y: entity.center.y,
-                                },
-                                radius: entity.radius,
-                            };
-                        case 'POLYLINE':
-                            return {
-                                type: entity.type,
-                                vertices: entity.vertices.map((v: any) => ({
-                                    x: v.x,
-                                    y: v.y,
-                                })),
-                            };
-                        case 'ARC':
-                            return {
-                                type: entity.type,
-                                center: {
-                                    x: entity.center.x,
-                                    y: entity.center.y,
-                                },
-                                radius: entity.radius,
-                                startAngle: entity.startAngle,
-                                endAngle: entity.endAngle,
-                            };
-                        default:
-                            console.warn('Unsupported entity type:', entity.type);
-                            return null; // Bỏ qua các loại thực thể không hỗ trợ
-                    }
-                }).filter(Boolean); // Loại bỏ các thực thể null
-
+                const entities = dxfData.entities
+                .filter((entity: any) => entity.type === 'LINE'); 
+            
                 res.json({
-                    fileId: fileId,
+                    fileId,
                     fileName: file.file_name,
                     user: file.upload_user,
                     entities,

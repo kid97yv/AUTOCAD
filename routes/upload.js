@@ -317,6 +317,7 @@ const pg_1 = require("pg");
 const path_1 = __importDefault(require("path"));
 const autosave_1 = require("../autosave");
 const stream_1 = require("stream");
+const filereader_1 = __importDefault(require("filereader"));
 // Khởi tạo router và parser
 const router = express_1.default.Router();
 const parser = new dxf_parser_1.default();
@@ -542,6 +543,7 @@ router.get('/download/:id', (req, res) => __awaiter(void 0, void 0, void 0, func
                     center: entity.center,
                     radius: entity.radius
                 };
+                console.log("filteredEntity:", filteredEntity);
                 return filteredEntity;
             });
             const scale = {
@@ -833,10 +835,12 @@ router.get('/read-dxf/:fileId', (req, res) => __awaiter(void 0, void 0, void 0, 
         const result = yield pool.query('SELECT * FROM "Files" WHERE id = $1', [fileId]);
         if (result.rows.length === 0) {
             res.status(404).send('File not found.');
+            return;
         }
         const file = result.rows[0];
         const filePath = file.file_path;
         const parser = new dxf_parser_1.default();
+        const fileReader = new filereader_1.default();
         fs_1.default.readFile(filePath, 'utf8', (err, data) => {
             if (err) {
                 console.error('Error reading file:', err);
@@ -847,55 +851,10 @@ router.get('/read-dxf/:fileId', (req, res) => __awaiter(void 0, void 0, void 0, 
                 if (!dxfData) {
                     return res.status(500).send('Error parsing DXF file: No data returned.');
                 }
-                const entities = dxfData.entities.map((entity) => {
-                    switch (entity.type) {
-                        case 'LINE':
-                            return {
-                                type: entity.type,
-                                start: {
-                                    x: entity.startPoint.x,
-                                    y: entity.startPoint.y,
-                                },
-                                end: {
-                                    x: entity.endPoint.x,
-                                    y: entity.endPoint.y,
-                                },
-                            };
-                        case 'CIRCLE':
-                            return {
-                                type: entity.type,
-                                center: {
-                                    x: entity.center.x,
-                                    y: entity.center.y,
-                                },
-                                radius: entity.radius,
-                            };
-                        case 'POLYLINE':
-                            return {
-                                type: entity.type,
-                                vertices: entity.vertices.map((v) => ({
-                                    x: v.x,
-                                    y: v.y,
-                                })),
-                            };
-                        case 'ARC':
-                            return {
-                                type: entity.type,
-                                center: {
-                                    x: entity.center.x,
-                                    y: entity.center.y,
-                                },
-                                radius: entity.radius,
-                                startAngle: entity.startAngle,
-                                endAngle: entity.endAngle,
-                            };
-                        default:
-                            console.warn('Unsupported entity type:', entity.type);
-                            return null; // Bỏ qua các loại thực thể không hỗ trợ
-                    }
-                }).filter(Boolean); // Loại bỏ các thực thể null
+                const entities = dxfData.entities
+                    .filter((entity) => entity.type === 'LINE');
                 res.json({
-                    fileId: fileId,
+                    fileId,
                     fileName: file.file_name,
                     user: file.upload_user,
                     entities,
