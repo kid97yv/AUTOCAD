@@ -541,43 +541,11 @@ router.post('/autosave', async (req: Request, res: Response): Promise<void> => {
         }
         res.status(401).send('Unauthorized'); 
     };
-    // router.get('/download/:id', async (req: Request, res: Response): Promise<void> => {
-    //     const fileId = req.params.id;
-    
-    //     try {
-    //         const result = await pool.query('SELECT file_name, file_path FROM "Files" WHERE id = $1', [fileId]);
-    
-    //         if (result.rows.length === 0) {
-    //              res.status(404).send('File not found.');
-    //         }
-    
-    //         const { file_name, file_path } = result.rows[0];
-    
-    //         const fullPath = file_path;
-    
-    //         if (fs.existsSync(fullPath)) {
-    //             res.setHeader('Content-Disposition', `attachment; filename="${file_name}"`);
-    //              res.download(fullPath, file_name, (err) => {
-    //                 if (err) {
-    //                     console.error('Error downloading file:', err);
-    //                     return res.status(500).send('Error downloading file.');
-    //                 }
-    //             });
-    //         } else {
-    //             console.error('File not found on server:', fullPath);
-    //              res.status(404).send('File not found on server.');
-    //         }
-    //     } catch (error) {
-    //         console.error('Database error:', error);
-    //          res.status(500).send('Error retrieving file information.');
-    //     }
-    // });
-    /**
  /**
  * @swagger
  * /download/{id}:
  *   get:
- *     description: Download a modified DXF file with filtered entities
+ *     description: Download the original DXF file without any modifications
  *     parameters:
  *       - in: path
  *         name: id
@@ -588,71 +556,40 @@ router.post('/autosave', async (req: Request, res: Response): Promise<void> => {
  *       200:
  *         description: File downloaded successfully
  *         content:
- *           application/dxf:
+ *           application/octet-stream:  # Thay đổi loại nội dung cho file gốc
  *             schema:
  *               type: string
  *               format: binary
  *       404:
  *         description: File not found
  *       500:
- *         description: Error retrieving or processing the file
+ *         description: Error retrieving the file
  */
 router.get('/download/:id', async (req: Request, res: Response): Promise<void> => {
     const fileId = req.params.id;
 
     try {
-        const result = await pool.query('SELECT file_name, file_path, user_id FROM "Files" WHERE id = $1', [fileId]);
+        const result = await pool.query('SELECT file_name, file_path FROM "Files" WHERE id = $1', [fileId]);
 
         if (result.rows.length === 0) {
             res.status(404).send('File not found.');
             return;
         }
 
-        const { file_name, file_path, user_id } = result.rows[0];
+        const { file_name, file_path } = result.rows[0];
         const fullPath = file_path;
 
         if (fs.existsSync(fullPath)) {
-            const dxfData = fs.readFileSync(fullPath, 'utf-8');
-            const parsedData = parser.parseSync(dxfData);
+            // Đặt tên file và header cho download
+            res.setHeader('Content-Disposition', `attachment; filename="${file_name}"`);
+            res.setHeader('Content-Type', 'application/octet-stream');
 
-            if (!parsedData) {
-                res.status(500).send('Error parsing DXF file.');
-                return;
-            }
-
-            const entities = parsedData.entities.map((entity: any) => {
-                const filteredEntity: any = {
-                    type: entity.type,
-                    handle: entity.handle,
-                    ownerHandle: entity.ownerHandle,
-                    layer: entity.layer,
-                    colorIndex: entity.colorIndex,
-                    color: entity.color,
-                    lineweight: entity.lineweight,
-                    center: entity.center,
-                    radius: entity.radius
-                };
-                console.log("filteredEntity:", filteredEntity);
-                return filteredEntity;
+            // Tải file xuống
+            const fileStream = fs.createReadStream(fullPath);
+            fileStream.pipe(res).on('error', (err) => {
+                console.error('Error streaming file:', err);
+                res.status(500).send('Error downloading file.');
             });
-
-            const scale = {
-                extmin: parsedData.header.$EXTMIN,
-                extmax: parsedData.header.$EXTMAX,
-                isScaleOneToOne: parsedData.header && parsedData.header['$INSUNITS'] === 1
-            };
-
-            const modifiedDxfData = createModifiedDxfString(user_id, scale, entities);
-
-            const buffer = Buffer.from(modifiedDxfData, 'utf-8');
-            const stream = Readable.from(buffer);
-
-            const newFileName = `Entities_${file_name}`;
-
-            res.setHeader('Content-Disposition', `attachment; filename="${newFileName}"`);
-            res.setHeader('Content-Type', 'application/dxf');
-
-            stream.pipe(res);
         } else {
             res.status(404).send('File not found on server.');
         }
@@ -661,6 +598,7 @@ router.get('/download/:id', async (req: Request, res: Response): Promise<void> =
         res.status(500).send('Error retrieving file.');
     }
 });
+
 
 function createModifiedDxfString(user: string, scale: any, entities: any[]): string {
     const dxfJson = {
@@ -733,87 +671,7 @@ function createModifiedDxfString(user: string, scale: any, entities: any[]): str
  *         description: "Internal server error while fetching file history."
  */
 
-// router.get('/history', isAuthenticated, async (req: Request, res: Response): Promise<void> => {
-//     const userId = (req.session as any).userId;
 
-//     if (!userId) {
-//         res.status(401).send('Unauthorized');
-//         return;
-//     }
-
-//     try {
-//         // Truy vấn các tệp của người dùng
-//         const result = await pool.query('SELECT * FROM "Files" WHERE user_id = $1 ORDER BY uploaded_at DESC', [userId]);
-//         const files = result.rows;
-
-//         const historyResponse = [];
-
-//         for (const file of files) {
-//             const { file_name, uploaded_at, id, file_path, upload_user } = file;
-
-//             const fullPath = path.resolve(__dirname, 'uploads', file_path);  
-
-//             if (!fs.existsSync(fullPath)) {
-//                 console.error(`File not found: ${fullPath}`);
-//                 continue; 
-//             }
-
-//             // Cập nhật phản hồi chỉ bao gồm thông tin cơ bản và link tải file
-//             historyResponse.push({
-//                 id,
-//                 fileName: file_name,
-//                 uploadedAt: uploaded_at,
-//                 user: upload_user,
-//                 downloadUrl: `/download/${id}`  // Đường dẫn tải file
-//             });
-//         }
-
-//         res.json(historyResponse);
-//     } catch (err) {
-//         console.error('Error fetching file history:', err);
-//         res.status(500).send('Error fetching file history.');
-//     }
-// });
-// router.get('/history/:userId?', async (req: Request, res: Response): Promise<void> => {
-//     const userId = req.params.userId || (req.session as any).userId;
-
-//     if (!userId) {
-//         res.status(401).send('Unauthorized');
-//         return;
-//     }
-
-//     try {
-//         // Truy vấn các tệp của người dùng
-//         const result = await pool.query('SELECT * FROM "Files" WHERE user_id = $1 ORDER BY uploaded_at DESC', [userId]);
-//         const files = result.rows;
-
-//         const historyResponse = [];
-
-//         for (const file of files) {
-//             const { file_name, uploaded_at, id, file_path, upload_user } = file;
-
-//             const fullPath = path.resolve(__dirname, 'uploads', file_path);  
-
-//             if (!fs.existsSync(fullPath)) {
-//                 console.error(`File not found: ${fullPath}`);
-//                 continue; 
-//             }
-
-//             historyResponse.push({
-//                 id,
-//                 fileName: file_name,
-//                 uploadedAt: uploaded_at,
-//                 user: upload_user,
-//                 downloadUrl: `/download/${id}`  
-//             });
-//         }
-
-//         res.json(historyResponse);
-//     } catch (err) {
-//         console.error('Error fetching file history:', err);
-//         res.status(500).send('Error fetching file history.');
-//     }
-// });
 router.get('/history/:userId?', async (req: Request, res: Response): Promise<void> => {
     const userId = req.params.userId || (req.session as any).userId;
 
@@ -850,28 +708,7 @@ router.get('/history/:userId?', async (req: Request, res: Response): Promise<voi
             files: historyResponse,
         });
 
-        // Kiểm tra các file không tồn tại
-        // const missingFiles = historyResponse.filter(file => !file.exists);
-        // if (missingFiles.length > 0) {
-        //     // Thêm thông tin về các file không tồn tại vào phản hồi
-        //     res.json({
-        //         success: true,
-        //         files: historyResponse,
-        //         missingFiles: missingFiles.map(file => ({
-        //             fileName: file.fileName,
-        //             fullPath: file.fullPath,
-        //             uploadedAt: file.uploadedAt,
-        //             user: file.user,
-        //         })),
-        //     });
-        // } else {
-        //     // Nếu không có file nào bị thiếu
-        //     res.json({
-        //         success: true,
-        //         files: historyResponse,
-        //         missingFiles: [],
-        //     });
-        // }
+
     } catch (err) {
         console.error('Error fetching file history:', err);
         res.status(500).send('Error fetching file history.');
@@ -882,7 +719,7 @@ router.get('/history/:userId?', async (req: Request, res: Response): Promise<voi
  * /read-dxf/{fileId}:
  *   get:
  *     summary: "Read the content of a DXF file"
- *     description: "Reads the content of a DXF file and returns the entities and scale information."
+ *     description: "Reads the content of a DXF file and returns the filtered entities (only LINE type) and basic file information."
  *     parameters:
  *       - in: path
  *         name: fileId
@@ -892,7 +729,7 @@ router.get('/history/:userId?', async (req: Request, res: Response): Promise<voi
  *           type: string
  *     responses:
  *       200:
- *         description: "The content of the DXF file"
+ *         description: "The content of the DXF file, including filtered entities"
  *         content:
  *           application/json:
  *             schema:
@@ -900,23 +737,13 @@ router.get('/history/:userId?', async (req: Request, res: Response): Promise<voi
  *               properties:
  *                 fileId:
  *                   type: string
+ *                   description: "The ID of the DXF file"
  *                 fileName:
  *                   type: string
+ *                   description: "The name of the DXF file"
  *                 user:
  *                   type: string
- *                 scale:
- *                   type: object
- *                   properties:
- *                     extmin:
- *                       type: array
- *                       items:
- *                         type: number
- *                     extmax:
- *                       type: array
- *                       items:
- *                         type: number
- *                     isScaleOneToOne:
- *                       type: boolean
+ *                   description: "The user who uploaded the file"
  *                 entities:
  *                   type: array
  *                   items:
@@ -924,30 +751,38 @@ router.get('/history/:userId?', async (req: Request, res: Response): Promise<voi
  *                     properties:
  *                       type:
  *                         type: string
+ *                         description: "The type of the entity (should be LINE)"
  *                       handle:
  *                         type: string
+ *                         description: "The handle of the entity"
  *                       ownerHandle:
  *                         type: string
+ *                         description: "The owner handle of the entity"
  *                       layer:
  *                         type: string
+ *                         description: "The layer of the entity"
  *                       colorIndex:
  *                         type: integer
+ *                         description: "The color index of the entity"
  *                       color:
  *                         type: integer
+ *                         description: "The color of the entity"
  *                       lineweight:
  *                         type: integer
+ *                         description: "The line weight of the entity"
  *                       center:
  *                         type: array
  *                         items:
  *                           type: number
+ *                         description: "The center point of the entity (if applicable)"
  *                       radius:
  *                         type: number
+ *                         description: "The radius of the entity (if applicable)"
  *       404:
  *         description: "File not found"
  *       500:
  *         description: "Error reading or parsing the file"
  */
-
 
 router.get('/read-dxf/:fileId', async (req: Request, res: Response): Promise<void> => {
     const fileId = req.params.fileId;

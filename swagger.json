@@ -158,80 +158,83 @@
         }
       }
     },
-   "/upload": {
-  "post": {
-    "summary": "Upload a DXF file",
-    "description": "Uploads a DXF file, parses it, and stores it in the database.",
-    "consumes": [
-      "multipart/form-data"
-    ],
-    "parameters": [
-      {
-        "in": "formData",
-        "name": "file",
-        "description": "The DXF file to upload.",
-        "required": true,
-        "type": "file"
-      },
-      {
-        "in": "formData",
-        "name": "userId",
-        "description": "The user ID for associating the file.",
-        "required": false,
-        "type": "string"
-      }
-    ],
-    "responses": {
-      "200": {
-        "description": "File uploaded successfully.",
-        "content": {
-          "application/json": {
-            "schema": {
-              "type": "object",
-              "properties": {
-                "message": {
-                  "type": "string",
-                  "example": "File uploaded successfully"
+    "/upload": {
+      "post": {
+        "summary": "Upload a DXF file",
+        "description": "Uploads a DXF file, parses it, and stores it in the database.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "file": {
+                    "type": "string",
+                    "format": "binary",
+                    "description": "The DXF file to upload."
+                  },
+                  "userId": {
+                    "type": "string",
+                    "description": "The user ID for associating the file."
+                  }
                 },
-                "file": {
-                  "type": "object",
-                  "properties": {
-                    "id": {
-                      "type": "integer",
-                      "example": 123
-                    },
-                    "filename": {
-                      "type": "string",
-                      "example": "example.dxf"
-                    },
-                    "filePath": {
-                      "type": "string",
-                      "example": "/uploads/example.dxf"
-                    },
-                    "readLink": {
-                      "type": "string",
-                      "example": "/read-dxf/example.dxf"
-                    },
-                    "downloadLink": {
-                      "type": "string",
-                      "example": "/download/123"
+                "required": ["file"]
+              }
+            }
+          },
+          "responses": {
+            "200": {
+              "description": "File uploaded successfully.",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "type": "object",
+                    "properties": {
+                      "message": {
+                        "type": "string",
+                        "example": "File uploaded successfully"
+                      },
+                      "file": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "integer",
+                            "example": 123
+                          },
+                          "filename": {
+                            "type": "string",
+                            "example": "example.dxf"
+                          },
+                          "filePath": {
+                            "type": "string",
+                            "example": "/uploads/example.dxf"
+                          },
+                          "readLink": {
+                            "type": "string",
+                            "example": "/read-dxf/example.dxf"
+                          },
+                          "downloadLink": {
+                            "type": "string",
+                            "example": "/download/123"
+                          }
+                        }
+                      }
                     }
                   }
                 }
               }
+            },
+            "400": {
+              "description": "Invalid file or missing required sections in the DXF file."
+            },
+            "500": {
+              "description": "Error processing file."
             }
           }
         }
-      },
-      "400": {
-        "description": "Invalid file or missing required sections in the DXF file."
-      },
-      "500": {
-        "description": "Error processing file."
       }
-    }
-  }
-},
+    },
     "/autosave": {
       "post": {
         "description": "Start autosave process",
@@ -244,7 +247,7 @@
     },
     "/download/{id}": {
       "get": {
-        "description": "Download a modified DXF file with filtered entities",
+        "description": "Download the original DXF file without any modifications",
         "parameters": [
           {
             "in": "path",
@@ -260,7 +263,7 @@
           "200": {
             "description": "File downloaded successfully",
             "content": {
-              "application/dxf": {
+              "application/octet-stream": {
                 "schema": {
                   "type": "string",
                   "format": "binary"
@@ -272,7 +275,7 @@
             "description": "File not found"
           },
           "500": {
-            "description": "Error retrieving or processing the file"
+            "description": "Error retrieving the file"
           }
         }
       }
@@ -368,57 +371,40 @@
         }
       }
     },
-        "/read-dxf/{fileId}": {
+    "/read-dxf/{fileId}": {
       "get": {
         "summary": "Read the content of a DXF file",
-        "description": "Reads the content of a DXF file and returns the entities and scale information.",
+        "description": "Reads the content of a DXF file and returns the filtered entities (only LINE type) and basic file information.",
         "parameters": [
           {
             "in": "path",
             "name": "fileId",
             "required": true,
-            "description": "The ID of the DXF file to read",
             "schema": {
               "type": "string"
-            }
+            },
+            "description": "The ID of the DXF file to read"
           }
         ],
         "responses": {
           "200": {
-            "description": "The content of the DXF file",
+            "description": "The content of the DXF file, including filtered entities",
             "content": {
               "application/json": {
                 "schema": {
                   "type": "object",
                   "properties": {
                     "fileId": {
-                      "type": "string"
+                      "type": "string",
+                      "description": "The ID of the DXF file"
                     },
                     "fileName": {
-                      "type": "string"
+                      "type": "string",
+                      "description": "The name of the DXF file"
                     },
                     "user": {
-                      "type": "string"
-                    },
-                    "scale": {
-                      "type": "object",
-                      "properties": {
-                        "extmin": {
-                          "type": "array",
-                          "items": {
-                            "type": "number"
-                          }
-                        },
-                        "extmax": {
-                          "type": "array",
-                          "items": {
-                            "type": "number"
-                          }
-                        },
-                        "isScaleOneToOne": {
-                          "type": "boolean"
-                        }
-                      }
+                      "type": "string",
+                      "description": "The user who uploaded the file"
                     },
                     "entities": {
                       "type": "array",
@@ -426,34 +412,43 @@
                         "type": "object",
                         "properties": {
                           "type": {
-                            "type": "string"
+                            "type": "string",
+                            "description": "The type of the entity (should be LINE)"
                           },
                           "handle": {
-                            "type": "string"
+                            "type": "string",
+                            "description": "The handle of the entity"
                           },
                           "ownerHandle": {
-                            "type": "string"
+                            "type": "string",
+                            "description": "The owner handle of the entity"
                           },
                           "layer": {
-                            "type": "string"
+                            "type": "string",
+                            "description": "The layer of the entity"
                           },
                           "colorIndex": {
-                            "type": "integer"
+                            "type": "integer",
+                            "description": "The color index of the entity"
                           },
                           "color": {
-                            "type": "integer"
+                            "type": "integer",
+                            "description": "The color of the entity"
                           },
                           "lineweight": {
-                            "type": "integer"
+                            "type": "integer",
+                            "description": "The line weight of the entity"
                           },
                           "center": {
                             "type": "array",
                             "items": {
                               "type": "number"
-                            }
+                            },
+                            "description": "The center point of the entity (if applicable)"
                           },
                           "radius": {
-                            "type": "number"
+                            "type": "number",
+                            "description": "The radius of the entity (if applicable)"
                           }
                         }
                       }
@@ -474,7 +469,3 @@
     }
   }
 }
-  
-  
-  
-
