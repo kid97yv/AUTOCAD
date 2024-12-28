@@ -106,14 +106,14 @@
                 "required": ["username", "password"]
               }
             }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Login successful"
           },
-          "401": {
-            "description": "Unauthorized"
+          "responses": {
+            "200": {
+              "description": "Login successful"
+            },
+            "401": {
+              "description": "Unauthorized"
+            }
           }
         }
       }
@@ -161,7 +161,7 @@
     "/upload": {
       "post": {
         "summary": "Upload a DXF file",
-        "description": "Uploads a DXF file, parses it, and stores it in the database.",
+        "description": "Uploads a DXF file, parses it, and stores it in the database. Each file will be saved with a unique name using a timestamp to prevent overwriting.",
         "requestBody": {
           "required": true,
           "content": {
@@ -204,15 +204,15 @@
                           },
                           "filename": {
                             "type": "string",
-                            "example": "example.dxf"
+                            "example": "1672447712345_example.dxf"
                           },
                           "filePath": {
                             "type": "string",
-                            "example": "/uploads/example.dxf"
+                            "example": "/uploads/1672447712345_example.dxf"
                           },
                           "readLink": {
                             "type": "string",
-                            "example": "/read-dxf/example.dxf"
+                            "example": "/read-dxf/1672447712345_example.dxf"
                           },
                           "downloadLink": {
                             "type": "string",
@@ -280,97 +280,99 @@
         }
       }
     },
-    "/history/{userId}": {
-      "get": {
-        "summary": "Get the history of uploaded files for a specific user",
-        "description": "Fetches the list of uploaded files for a specific user. If userId is not provided, it fetches the files of the authenticated user. The response includes details of files that do not exist.",
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
-        "parameters": [
-          {
-            "name": "userId",
-            "in": "path",
-            "description": "The ID of the user whose files history is being fetched. If not provided, the authenticated user's files will be fetched.",
-            "required": false,
+ "/history/{userId}": {
+  "get": {
+    "summary": "Get the history of uploaded files for a specific user",
+    "description": "Fetches the list of uploaded files for a specific user. If userId is not provided, it fetches the files of the default user. The response includes details of files that may not exist.",
+    "parameters": [
+      {
+        "name": "userId",
+        "in": "path",
+        "description": "The ID of the user whose files history is being fetched. If not provided, it fetches the files of the default user.",
+        "required": false,
+        "schema": {
+          "type": "string"
+        }
+      }
+    ],
+    "responses": {
+      "200": {
+        "description": "A list of uploaded files and missing files information",
+        "content": {
+          "application/json": {
             "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "A list of uploaded files and missing files information",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "success": {
-                      "type": "boolean",
-                      "description": "Indicates if the request was successful."
-                    },
-                    "files": {
-                      "type": "array",
-                      "items": {
-                        "type": "object",
-                        "properties": {
-                          "id": {
-                            "type": "integer"
-                          },
-                          "fileName": {
-                            "type": "string"
-                          },
-                          "uploadedAt": {
-                            "type": "string"
-                          },
-                          "user": {
-                            "type": "string"
-                          },
-                          "downloadUrl": {
-                            "type": "string",
-                            "description": "The URL to download the file"
-                          }
-                        }
+              "type": "object",
+              "properties": {
+                "success": {
+                  "type": "boolean",
+                  "description": "Indicates if the request was successful."
+                },
+                "files": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "integer"
+                      },
+                      "fileName": {
+                        "type": "string"
+                      },
+                      "uploadedAt": {
+                        "type": "string",
+                        "format": "date-time"
+                      },
+                      "user": {
+                        "type": "string"
+                      },
+                      "downloadUrl": {
+                        "type": "string",
+                        "description": "The URL to download the file."
+                      },
+                      "exists": {
+                        "type": "boolean",
+                        "description": "Indicates if the file exists on the server."
+                      },
+                      "fullPath": {
+                        "type": "string",
+                        "description": "The full path of the file on the server."
                       }
-                    },
-                    "missingFiles": {
-                      "type": "array",
-                      "items": {
-                        "type": "object",
-                        "properties": {
-                          "fileName": {
-                            "type": "string"
-                          },
-                          "fullPath": {
-                            "type": "string",
-                            "description": "The full path of the file that does not exist."
-                          },
-                          "uploadedAt": {
-                            "type": "string"
-                          },
-                          "user": {
-                            "type": "string"
-                          }
-                        }
+                    }
+                  }
+                },
+                "missingFiles": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "fileName": {
+                        "type": "string"
+                      },
+                      "fullPath": {
+                        "type": "string",
+                        "description": "The full path of the file that does not exist."
+                      },
+                      "uploadedAt": {
+                        "type": "string",
+                        "format": "date-time"
+                      },
+                      "user": {
+                        "type": "string"
                       }
                     }
                   }
                 }
               }
             }
-          },
-          "401": {
-            "description": "Unauthorized - User is not authenticated."
-          },
-          "500": {
-            "description": "Internal server error while fetching file history."
           }
         }
+      },
+      "500": {
+        "description": "Internal server error while fetching file history."
       }
-    },
+    }
+  }
+},
     "/read-dxf/{fileId}": {
       "get": {
         "summary": "Read the content of a DXF file",
