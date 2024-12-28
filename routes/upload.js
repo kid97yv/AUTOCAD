@@ -20,9 +20,16 @@ const pg_1 = require("pg");
 const path_1 = __importDefault(require("path"));
 const autosave_1 = require("../autosave");
 const filereader_1 = __importDefault(require("filereader"));
+const cors_1 = __importDefault(require("cors"));
 // Khởi tạo router và parser
 const router = express_1.default.Router();
 const parser = new dxf_parser_1.default();
+router.use((0, cors_1.default)({
+    origin: '*', // Cho phép tất cả các miền
+    methods: ['GET', 'POST', 'PUT', 'DELETE'], // Các phương thức HTTP được phép
+    allowedHeaders: ['Content-Type', 'Authorization'], // Các header được phép
+    credentials: true // Cho phép cookie và thông tin xác thực khác
+}));
 const storage = multer_1.default.diskStorage({
     destination: (req, file, cb) => {
         const dir = 'uploads/';

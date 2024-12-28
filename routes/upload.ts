@@ -7,8 +7,7 @@ import { Pool } from 'pg';
 import path from 'path';
 import { startAutosave } from '../autosave';
 import FileReader from 'filereader';
-
-import session from 'express-session';
+import cors from 'cors';
 // Khởi tạo router và parser
 const router = express.Router();
 const parser = new DxfParser();
@@ -19,7 +18,12 @@ interface FileRecord {
     filepath: string;
 }
 
-
+router.use(cors({
+    origin: '*', // Cho phép tất cả các miền
+    methods: ['GET', 'POST', 'PUT', 'DELETE'], // Các phương thức HTTP được phép
+    allowedHeaders: ['Content-Type', 'Authorization'], // Các header được phép
+    credentials: true // Cho phép cookie và thông tin xác thực khác
+}));
 
 const storage = multer.diskStorage({
     destination: (req, file, cb) => {
