@@ -2,6 +2,7 @@ import express, { Request, Response, NextFunction } from 'express';
 import { handleLogin, handleRegister } from '../controllers/authController';
 import uploadMiddleware from './upload'; 
 import session from 'express-session';
+import cors from 'cors';
 const router = express.Router();
 
 
@@ -12,7 +13,11 @@ app.use(session({
     saveUninitialized: true,
     cookie: { httpOnly: true, maxAge: 3600000 }  // Cookie có thời gian sống
   }));
-
+  app.use(cors({
+    origin: '*', // Cho phép tất cả các miền hoặc chỉ định miền cụ thể
+    methods: ['GET', 'POST', 'PUT', 'DELETE'], // Các phương thức HTTP được phép
+    allowedHeaders: ['Content-Type', 'Authorization'], // Các header được phép
+  }));
 /**
  * @swagger
  * /auth/register:

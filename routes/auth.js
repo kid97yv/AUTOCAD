@@ -16,6 +16,7 @@ const express_1 = __importDefault(require("express"));
 const authController_1 = require("../controllers/authController");
 const upload_1 = __importDefault(require("./upload"));
 const express_session_1 = __importDefault(require("express-session"));
+const cors_1 = __importDefault(require("cors"));
 const router = express_1.default.Router();
 const app = (0, express_1.default)();
 app.use((0, express_session_1.default)({
@@ -23,6 +24,11 @@ app.use((0, express_session_1.default)({
     resave: false,
     saveUninitialized: true,
     cookie: { httpOnly: true, maxAge: 3600000 } // Cookie có thời gian sống
+}));
+app.use((0, cors_1.default)({
+    origin: '*', // Cho phép tất cả các miền hoặc chỉ định miền cụ thể
+    methods: ['GET', 'POST', 'PUT', 'DELETE'], // Các phương thức HTTP được phép
+    allowedHeaders: ['Content-Type', 'Authorization'], // Các header được phép
 }));
 /**
  * @swagger
