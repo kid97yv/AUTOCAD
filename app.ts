@@ -10,10 +10,14 @@ import swaggerJSDoc from 'swagger-jsdoc';
 import swaggerUi from 'swagger-ui-express'; 
 import cors from 'cors'; 
 
-// Khởi tạo express app và port
-const app = express();
-app.use(cors());
 
+const app = express();
+app.use(cors({
+    origin: '*', 
+    methods: ['GET', 'POST', 'PUT', 'DELETE'], 
+    allowedHeaders: ['Content-Type', 'Authorization'], 
+    credentials: true 
+}));
 const PORT = 3030;
 const connectPgSimple = require('connect-pg-simple');
 
@@ -34,18 +38,15 @@ app.use(require('express-session')({
   }));
 app.use(session({
     store: new PGSession({
-        pool: pool,  // Sử dụng pool kết nối của bạn
-        tableName: 'session',  // Tên bảng lưu trữ session trong PostgreSQL
+        pool: pool, 
+        tableName: 'session',  
     }),
     secret: 'your-secret-key',
     resave: false,
     saveUninitialized: false,
-    cookie: { secure: false },  // Đặt `secure: true` khi chạy trên môi trường HTTPS
+    cookie: { secure: false },  
 }));
-// app.use(cors({
-//     origin: '*',  // Chấp nhận tất cả các domain
-//     credentials: true,  // Cho phép gửi cookie (nếu cần)
-// }));
+
 
 
 const swaggerOptions = {
@@ -89,10 +90,6 @@ app.use((req, res, next) => {
     next();
 });
 
-// Trang chủ
-app.get('/hello', (req, res) => {
-    res.send('Hello World!');
-});
 
 // Khởi động server
 app.listen(PORT, () => {

@@ -13,9 +13,13 @@ const express_flash_1 = __importDefault(require("express-flash"));
 const fs_1 = __importDefault(require("fs"));
 const swagger_ui_express_1 = __importDefault(require("swagger-ui-express"));
 const cors_1 = __importDefault(require("cors"));
-// Khởi tạo express app và port
 const app = (0, express_1.default)();
-app.use((0, cors_1.default)());
+app.use((0, cors_1.default)({
+    origin: '*',
+    methods: ['GET', 'POST', 'PUT', 'DELETE'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
+    credentials: true
+}));
 const PORT = 3030;
 const connectPgSimple = require('connect-pg-simple');
 const pool = new pg_1.Pool({
@@ -35,18 +39,14 @@ app.use(require('express-session')({
 }));
 app.use((0, express_session_1.default)({
     store: new PGSession({
-        pool: pool, // Sử dụng pool kết nối của bạn
-        tableName: 'session', // Tên bảng lưu trữ session trong PostgreSQL
+        pool: pool,
+        tableName: 'session',
     }),
     secret: 'your-secret-key',
     resave: false,
     saveUninitialized: false,
-    cookie: { secure: false }, // Đặt `secure: true` khi chạy trên môi trường HTTPS
+    cookie: { secure: false },
 }));
-// app.use(cors({
-//     origin: '*',  // Chấp nhận tất cả các domain
-//     credentials: true,  // Cho phép gửi cookie (nếu cần)
-// }));
 const swaggerOptions = {
     definition: {
         openapi: '3.0.0',
@@ -78,10 +78,6 @@ app.use('/', upload_1.default);
 app.use((req, res, next) => {
     console.log(`${req.method} ${req.url}`);
     next();
-});
-// Trang chủ
-app.get('/hello', (req, res) => {
-    res.send('Hello World!');
 });
 // Khởi động server
 app.listen(PORT, () => {
