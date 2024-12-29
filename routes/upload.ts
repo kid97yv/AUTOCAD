@@ -98,9 +98,9 @@ const pool = new Pool({
  *                       type: string
  *                       example: "/download/123"
  *       400:
- *         description: "Invalid file or missing required sections in the DXF file."
+ *         description: "No file uploaded or invalid file type."
  *       500:
- *         description: "Error processing file."
+ *         description: "Error processing file or saving to database."
  */
 router.post('/upload', upload.single('file'), async (req: Request, res: Response): Promise<void> => {
     const userId = (req.session as any).userId;
@@ -115,12 +115,12 @@ router.post('/upload', upload.single('file'), async (req: Request, res: Response
         return;
     }
 
-    const timestamp = Date.now(); // Thêm dấu thời gian
+    const timestamp = Date.now(); 
     const newFileName = `${timestamp}_${req.file.filename}`;
     const newFilePath = path.join(__dirname, '../uploads/', newFileName);
 
     try {
-        const fileContent = fs.readFileSync(req.file.path, 'utf-8'); // Đọc tệp từ đường dẫn tạm thời
+        const fileContent = fs.readFileSync(req.file.path, 'utf-8'); 
         const dxfData = parser.parseSync(fileContent);
 
         if (!dxfData || !dxfData.entities) {
@@ -129,9 +129,7 @@ router.post('/upload', upload.single('file'), async (req: Request, res: Response
             return;
         }
 
-        // Di chuyển tệp tin đến đường dẫn mới với tên mới
         fs.renameSync(req.file.path, newFilePath);
-
         const result = await pool.query(
             'INSERT INTO "Files" (user_id, file_name, file_path, uploaded_at) VALUES ($1, $2, $3, NOW()) RETURNING id',
             [userId, newFileName, newFilePath]

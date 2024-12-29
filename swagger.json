@@ -159,82 +159,82 @@
       }
     },
     "/upload": {
-      "post": {
-        "summary": "Upload a DXF file",
-        "description": "Uploads a DXF file, parses it, and stores it in the database. Each file will be saved with a unique name using a timestamp to prevent overwriting.",
-        "requestBody": {
-          "required": true,
-          "content": {
-            "multipart/form-data": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "file": {
-                    "type": "string",
-                    "format": "binary",
-                    "description": "The DXF file to upload."
-                  },
-                  "userId": {
-                    "type": "string",
-                    "description": "The user ID for associating the file."
-                  }
-                },
-                "required": ["file"]
-              }
-            }
-          },
-          "responses": {
-            "200": {
-              "description": "File uploaded successfully.",
-              "content": {
-                "application/json": {
-                  "schema": {
-                    "type": "object",
-                    "properties": {
-                      "message": {
-                        "type": "string",
-                        "example": "File uploaded successfully"
-                      },
-                      "file": {
-                        "type": "object",
-                        "properties": {
-                          "id": {
-                            "type": "integer",
-                            "example": 123
-                          },
-                          "filename": {
-                            "type": "string",
-                            "example": "1672447712345_example.dxf"
-                          },
-                          "filePath": {
-                            "type": "string",
-                            "example": "/uploads/1672447712345_example.dxf"
-                          },
-                          "readLink": {
-                            "type": "string",
-                            "example": "/read-dxf/1672447712345_example.dxf"
-                          },
-                          "downloadLink": {
-                            "type": "string",
-                            "example": "/download/123"
-                          }
-                        }
-                      }
-                    }
-                  }
-                }
+  "post": {
+    "summary": "Upload a DXF file",
+    "description": "Uploads a DXF file, parses it, and stores it in the database. Each file will be saved with a unique name using a timestamp to prevent overwriting.",
+    "requestBody": {
+      "required": true,
+      "content": {
+        "multipart/form-data": {
+          "schema": {
+            "type": "object",
+            "properties": {
+              "file": {
+                "type": "string",
+                "format": "binary",
+                "description": "The DXF file to upload."
+              },
+              "userId": {
+                "type": "string",
+                "description": "The user ID for associating the file."
               }
             },
-            "400": {
-              "description": "Invalid file or missing required sections in the DXF file."
-            },
-            "500": {
-              "description": "Error processing file."
-            }
+            "required": ["file"]
           }
         }
       }
     },
+    "responses": {
+      "200": {
+        "description": "File uploaded successfully.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "type": "object",
+              "properties": {
+                "message": {
+                  "type": "string",
+                  "example": "File uploaded successfully"
+                },
+                "file": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "integer",
+                      "example": 123
+                    },
+                    "filename": {
+                      "type": "string",
+                      "example": "1672447712345_example.dxf"
+                    },
+                    "filePath": {
+                      "type": "string",
+                      "example": "/uploads/1672447712345_example.dxf"
+                    },
+                    "readLink": {
+                      "type": "string",
+                      "example": "/read-dxf/1672447712345_example.dxf"
+                    },
+                    "downloadLink": {
+                      "type": "string",
+                      "example": "/download/123"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "400": {
+        "description": "No file uploaded or invalid file type."
+      },
+      "500": {
+        "description": "Error processing file or saving to database."
+      }
+    }
+  }
+},
     "/autosave": {
       "post": {
         "description": "Start autosave process",
