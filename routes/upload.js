@@ -68,7 +68,7 @@ const pool = new pg_1.Pool({
  *       - in: formData
  *         name: userId
  *         description: "The user ID for associating the file."
- *         required: false
+ *         required: true  # Đã thay đổi thành true
  *         type: string
  *     responses:
  *       200:
@@ -100,32 +100,38 @@ const pool = new pg_1.Pool({
  *                       type: string
  *                       example: "/download/123"
  *       400:
- *         description: "Invalid file or missing required sections in the DXF file."
+ *         description: "No file uploaded or invalid file type."
  *       500:
- *         description: "Error processing file."
+ *         description: "Error processing file or saving to database."
  */
 router.post('/upload', upload.single('file'), (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    const userId = req.session.userId;
+    const { userId } = req.body; // Lấy userId từ body
+    // Kiểm tra nếu không có file được upload
     if (!req.file) {
         res.status(400).json({ error: 'No file uploaded.' });
         return;
     }
+    // Kiểm tra định dạng file
     if (path_1.default.extname(req.file.filename) !== '.dxf') {
         res.status(400).json({ error: 'Please upload a valid DXF file.' });
         return;
     }
-    const timestamp = Date.now(); // Thêm dấu thời gian
+    // Kiểm tra nếu userId không được cung cấp
+    if (!userId) {
+        res.status(400).json({ error: 'User ID is required.' });
+        return;
+    }
+    const timestamp = Date.now();
     const newFileName = `${timestamp}_${req.file.filename}`;
     const newFilePath = path_1.default.join(__dirname, '../uploads/', newFileName);
     try {
-        const fileContent = fs_1.default.readFileSync(req.file.path, 'utf-8'); // Đọc tệp từ đường dẫn tạm thời
+        const fileContent = fs_1.default.readFileSync(req.file.path, 'utf-8');
         const dxfData = parser.parseSync(fileContent);
         if (!dxfData || !dxfData.entities) {
             console.error('Error parsing DXF file: No data returned.');
             res.status(500).json({ error: 'Error parsing DXF file: No data returned.' });
             return;
         }
-        // Di chuyển tệp tin đến đường dẫn mới với tên mới
         fs_1.default.renameSync(req.file.path, newFilePath);
         const result = yield pool.query('INSERT INTO "Files" (user_id, file_name, file_path, uploaded_at) VALUES ($1, $2, $3, NOW()) RETURNING id', [userId, newFileName, newFilePath]);
         const fileId = result.rows[0].id;

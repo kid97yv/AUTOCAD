@@ -66,7 +66,7 @@ const pool = new Pool({
  *       - in: formData
  *         name: userId
  *         description: "The user ID for associating the file."
- *         required: false
+ *         required: true  # Đã thay đổi thành true
  *         type: string
  *     responses:
  *       200:
@@ -103,15 +103,23 @@ const pool = new Pool({
  *         description: "Error processing file or saving to database."
  */
 router.post('/upload', upload.single('file'), async (req: Request, res: Response): Promise<void> => {
-    const userId = (req.session as any).userId;
+    const { userId } = req.body; // Lấy userId từ body
 
+    // Kiểm tra nếu không có file được upload
     if (!req.file) {
         res.status(400).json({ error: 'No file uploaded.' });
         return;
     }
 
+    // Kiểm tra định dạng file
     if (path.extname(req.file.filename) !== '.dxf') {
         res.status(400).json({ error: 'Please upload a valid DXF file.' });
+        return;
+    }
+
+    // Kiểm tra nếu userId không được cung cấp
+    if (!userId) {
+        res.status(400).json({ error: 'User ID is required.' });
         return;
     }
 

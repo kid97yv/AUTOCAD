@@ -158,7 +158,7 @@
         }
       }
     },
-    "/upload": {
+  "/upload": {
   "post": {
     "summary": "Upload a DXF file",
     "description": "Uploads a DXF file, parses it, and stores it in the database. Each file will be saved with a unique name using a timestamp to prevent overwriting.",
@@ -176,10 +176,11 @@
               },
               "userId": {
                 "type": "string",
-                "description": "The user ID for associating the file."
+                "description": "The user ID for associating the file.",
+                "nullable": false // Đã thêm để chỉ ra rằng trường không thể null
               }
             },
-            "required": ["file"]
+            "required": ["file", "userId"] // Đã thay đổi để userId trở thành bắt buộc
           }
         }
       }
