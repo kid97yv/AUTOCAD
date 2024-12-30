@@ -177,10 +177,10 @@
               "userId": {
                 "type": "string",
                 "description": "The user ID for associating the file.",
-                "nullable": false // Đã thêm để chỉ ra rằng trường không thể null
+                "nullable": false 
               }
             },
-            "required": ["file", "userId"] // Đã thay đổi để userId trở thành bắt buộc
+            "required": ["file", "userId"] 
           }
         }
       }
