@@ -53,20 +53,20 @@ const pool = new Pool({
  * @swagger
  * /upload:
  *   post:
- *     summary: "Upload a DXF file"
- *     description: "Uploads a DXF file, parses it, and stores it in the database. Each file will be saved with a unique name using a timestamp to prevent overwriting."
+ *     summary: "Upload a DXF or DWG file"
+ *     description: "Uploads a DXF or DWG file, and converts any DWG file to DXF format before storing it in the database. Each file will be saved with a unique name using a timestamp to prevent overwriting."
  *     consumes:
  *       - multipart/form-data
  *     parameters:
  *       - in: formData
  *         name: file
- *         description: "The DXF file to upload."
+ *         description: "The DXF or DWG file to upload. DWG files will be converted to DXF."
  *         required: true
  *         type: file
  *       - in: formData
  *         name: userId
  *         description: "The user ID for associating the file."
- *         required: true  # Đã thay đổi thành true
+ *         required: true
  *         type: string
  *     responses:
  *       200:
@@ -103,7 +103,7 @@ const pool = new Pool({
  *         description: "Error processing file or saving to database."
  */
 router.post('/upload', upload.single('file'), async (req: Request, res: Response): Promise<void> => {
-    const { userId } = req.body; // Lấy userId từ body
+    const { userId } = req.body;
 
     // Kiểm tra nếu không có file được upload
     if (!req.file) {
@@ -112,32 +112,33 @@ router.post('/upload', upload.single('file'), async (req: Request, res: Response
     }
 
     // Kiểm tra định dạng file
-    if (path.extname(req.file.filename) !== '.dxf') {
-        res.status(400).json({ error: 'Please upload a valid DXF file.' });
+    const fileExt = path.extname(req.file.filename).toLowerCase();
+    if (fileExt !== '.dxf' && fileExt !== '.dwg') {
+        res.status(400).json({ error: 'Please upload a valid DXF or DWG file.' });
         return;
     }
 
-    // Kiểm tra nếu userId không được cung cấp
+    // Kiểm tra userId
     if (!userId) {
         res.status(400).json({ error: 'User ID is required.' });
         return;
     }
 
     const timestamp = Date.now(); 
-    const newFileName = `${timestamp}_${req.file.filename}`;
-    const newFilePath = path.join(__dirname, '../uploads/', newFileName);
+    let newFileName = `${timestamp}_${req.file.filename}`;
+    let newFilePath = path.join(__dirname, '../uploads/', newFileName);
 
     try {
-        const fileContent = fs.readFileSync(req.file.path, 'utf-8'); 
-        const dxfData = parser.parseSync(fileContent);
-
-        if (!dxfData || !dxfData.entities) {
-            console.error('Error parsing DXF file: No data returned.');
-            res.status(500).json({ error: 'Error parsing DXF file: No data returned.' });
-            return;
+        // Nếu là DWG, đổi đuôi thành DXF
+        if (fileExt === '.dwg') {
+            newFileName = newFileName.replace(/\.dwg$/, '.dxf'); // Đổi tên tệp
+            newFilePath = newFilePath.replace(/\.dwg$/, '.dxf'); // Đổi đường dẫn
         }
 
+        // Đổi tên tệp (hoặc giữ nguyên nếu là DXF)
         fs.renameSync(req.file.path, newFilePath);
+
+        // Lưu thông tin vào cơ sở dữ liệu
         const result = await pool.query(
             'INSERT INTO "Files" (user_id, file_name, file_path, uploaded_at) VALUES ($1, $2, $3, NOW()) RETURNING id',
             [userId, newFileName, newFilePath]

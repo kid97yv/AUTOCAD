@@ -160,8 +160,8 @@
     },
   "/upload": {
   "post": {
-    "summary": "Upload a DXF file",
-    "description": "Uploads a DXF file, parses it, and stores it in the database. Each file will be saved with a unique name using a timestamp to prevent overwriting.",
+    "summary": "Upload a DXF or DWG file",
+    "description": "Uploads a DXF or DWG file, converts any DWG file to DXF format, and stores it in the database. Each file will be saved with a unique name using a timestamp to prevent overwriting.",
     "requestBody": {
       "required": true,
       "content": {
@@ -172,7 +172,7 @@
               "file": {
                 "type": "string",
                 "format": "binary",
-                "description": "The DXF file to upload."
+                "description": "The DXF or DWG file to upload. DWG files will be converted to DXF."
               },
               "userId": {
                 "type": "string",
